@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Navigate Smart. Stay Out of Range.</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚀</text></svg>" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e6edf3'><path d='M12 2c0 0-4 4-4 10s4 10 4 10 4-4 4-10S12 2 12 2zm0 4a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM8 18l-2 4h2l2-2 2 2h2l-2-4H8z'/></svg>" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     :root {
@@ -404,21 +404,6 @@
     .stat-val { font-size: 17px; font-weight: 700; }
     .stat-name { font-size: 10px; color: var(--muted); margin-top: 1px; }
 
-    /* ── SEGMENTS ── */
-    .seg-item {
-      display: flex; align-items: center; gap: 7px;
-      padding: 5px 8px; background: var(--card);
-      border-radius: 4px; font-size: 11px;
-      margin-bottom: 4px;
-    }
-    .seg-label { color: var(--muted); width: 46px; flex-shrink: 0; }
-    .seg-bar-bg {
-      flex: 1; height: 5px; border-radius: 3px;
-      background: var(--border);
-    }
-    .seg-bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
-    .seg-pct { width: 32px; text-align: right; font-weight: 600; }
-
     /* ── TOGGLES ── */
     .toggle-row {
       display: flex; align-items: center;
@@ -742,6 +727,25 @@
           <div class="risk-level" id="risk-level">—</div>
           <div class="risk-desc" id="risk-desc">—</div>
         </div>
+
+        <!-- Start Navigation (right below risk) -->
+        <div class="nav-btns" id="nav-btns">
+          <a class="nav-link nav-waze" id="nav-waze" href="#" target="_blank" rel="noopener">
+            🗺️ Waze
+          </a>
+          <a class="nav-link nav-gmaps" id="nav-gmaps" href="#" target="_blank" rel="noopener">
+            📍 Google Maps
+          </a>
+        </div>
+
+        <!-- Route risk gradient bar -->
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px">
+            <span>Origin</span><span>Destination</span>
+          </div>
+          <div id="seg-bar" style="height:10px;border-radius:5px;overflow:hidden;background:var(--card)"></div>
+        </div>
+
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-val" id="s-dist">—</div>
@@ -760,25 +764,12 @@
             <div class="stat-name">Peak Risk</div>
           </div>
         </div>
-        <!-- Start Navigation -->
-        <div class="nav-btns" id="nav-btns">
-          <a class="nav-link nav-waze" id="nav-waze" href="#" target="_blank" rel="noopener">
-            🗺️ Waze
-          </a>
-          <a class="nav-link nav-gmaps" id="nav-gmaps" href="#" target="_blank" rel="noopener">
-            📍 Google Maps
-          </a>
-        </div>
+
         <!-- Alternate safer route banner -->
         <div class="alt-banner" id="alt-banner">
           <div class="alt-banner-title">🛡️ Safer route available</div>
           <div class="alt-banner-body" id="alt-body"></div>
           <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()">Switch to safer route</button>
-        </div>
-
-        <div style="margin-top:12px">
-          <div class="sec-title" style="margin-bottom:8px">Route Segments</div>
-          <div id="seg-list"></div>
         </div>
       </div>
     </div>
@@ -2531,24 +2522,14 @@ function updateUI(risk, distM, durS) {
 }
 
 function buildSegments(pts) {
-  const cont = document.getElementById('seg-list');
-  cont.innerHTML = '';
-  if (!pts.length) return;
-  const labels = ['Start','25%','Middle','75%','End'];
-  const bsz = Math.ceil(pts.length / 5);
-  for (let b = 0; b < 5; b++) {
-    const sl = pts.slice(b * bsz, (b+1) * bsz);
-    if (!sl.length) continue;
-    const avg = sl.reduce((s,p) => s + p.r, 0) / sl.length;
-    const col = riskColor(avg), pct = Math.round(avg * 100);
-    const div = document.createElement('div');
-    div.className = 'seg-item';
-    div.innerHTML = `
-      <span class="seg-label">${labels[b]}</span>
-      <div class="seg-bar-bg"><div class="seg-bar-fill" style="width:${pct}%;background:${col}"></div></div>
-      <span class="seg-pct" style="color:${col}">${pct}%</span>`;
-    cont.appendChild(div);
-  }
+  const bar = document.getElementById('seg-bar');
+  if (!pts.length) { bar.style.background = 'var(--card)'; return; }
+  // Build a CSS linear-gradient with color stops matching risk along the route
+  const stops = pts.map((p, i) => {
+    const pct = (i / (pts.length - 1)) * 100;
+    return `${riskColor(p.r)} ${pct.toFixed(1)}%`;
+  });
+  bar.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
 }
 
 // ═══════════════════════════════════════════════
