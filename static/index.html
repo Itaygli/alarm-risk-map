@@ -50,6 +50,9 @@
     .header-left h1 { font-size: 17px; font-weight: 700; }
     .header-left span.sub { font-size: 12px; color: var(--muted); }
     .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       background: rgba(255,68,68,.14);
       border: 1px solid var(--red);
       color: var(--red);
@@ -652,13 +655,10 @@
       <h1>Navigate Smart. Stay Out of Range.</h1>
       <span class="sub">Route risk based on 2026 Pikud HaOref alarm records</span>
     </div>
-    <span class="badge">2026 Live Data</span>
+    <span class="badge"><span class="live-dot" id="hdr-dot"></span>2026 Live Data</span>
   </div>
   <div style="display:flex;align-items:center;gap:18px">
-    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)">
-      <div class="live-dot" id="hdr-dot"></div>
-      <span id="hdr-status">Loading alarm data…</span>
-    </div>
+    <span id="hdr-status" style="font-size:12px;color:var(--muted)"></span>
   </div>
 </div>
 
