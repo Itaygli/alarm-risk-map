@@ -357,6 +357,39 @@
     }
     .alt-btn:hover { filter: brightness(1.15); }
 
+    /* ── START NAVIGATION BUTTONS ── */
+    .nav-btns {
+      display: none;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .nav-btns.show { display: flex; }
+    .nav-link {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 10px 8px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: filter .15s;
+      border: none;
+    }
+    .nav-link:hover { filter: brightness(1.1); }
+    .nav-link img { width: 18px; height: 18px; }
+    .nav-waze {
+      background: #33ccff;
+      color: #000;
+    }
+    .nav-gmaps {
+      background: #34a853;
+      color: #fff;
+    }
+
     /* ── STATS GRID ── */
     .stats-grid {
       display: grid; grid-template-columns: 1fr 1fr;
@@ -739,6 +772,15 @@
             <div class="stat-val" id="s-max">—</div>
             <div class="stat-name">Peak Risk</div>
           </div>
+        </div>
+        <!-- Start Navigation -->
+        <div class="nav-btns" id="nav-btns">
+          <a class="nav-link nav-waze" id="nav-waze" href="#" target="_blank" rel="noopener">
+            🗺️ Waze
+          </a>
+          <a class="nav-link nav-gmaps" id="nav-gmaps" href="#" target="_blank" rel="noopener">
+            📍 Google Maps
+          </a>
         </div>
         <!-- Alternate safer route banner -->
         <div class="alt-banner" id="alt-banner">
@@ -2287,6 +2329,7 @@ async function doCalculate() {
   setStatus('Fetching route…');
   pendingAltRoute = null;
   document.getElementById('alt-banner').classList.remove('show');
+  document.getElementById('nav-btns').classList.remove('show');
 
   try {
     // Request up to 3 alternative routes from OSRM
@@ -2498,6 +2541,17 @@ function updateUI(risk, distM, durS) {
   maxEl.style.color = riskColor(risk.max);
 
   buildSegments(risk.pts);
+
+  // Navigation deep links (Waze + Google Maps)
+  if (latlngOrigin && latlngDest) {
+    const oLat = latlngOrigin.lat, oLng = latlngOrigin.lng;
+    const dLat = latlngDest.lat,   dLng = latlngDest.lng;
+    document.getElementById('nav-waze').href =
+      `https://waze.com/ul?ll=${dLat},${dLng}&from=ll.${oLat},${oLng}&navigate=yes`;
+    document.getElementById('nav-gmaps').href =
+      `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=driving`;
+    document.getElementById('nav-btns').classList.add('show');
+  }
 }
 
 function buildSegments(pts) {
@@ -2532,6 +2586,7 @@ function doClear() {
   if (altPreviewLayer) { map.removeLayer(altPreviewLayer); altPreviewLayer = null; }
   pendingAltRoute = null;
   document.getElementById('alt-banner').classList.remove('show');
+  document.getElementById('nav-btns').classList.remove('show');
   document.getElementById('inp-origin').value = '';
   document.getElementById('inp-dest').value   = '';
   document.getElementById('risk-content').style.display = 'none';
