@@ -112,6 +112,10 @@ def icon192():
 def icon512():
     return send_from_directory(app.static_folder, 'icon-512.png', mimetype='image/png')
 
+@app.route('/google147126fdd8a61d8a.html')
+def google_verify():
+    return send_from_directory(app.static_folder, 'google147126fdd8a61d8a.html')
+
 @app.route('/robots.txt')
 def robots():
     return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
