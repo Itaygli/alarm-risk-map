@@ -112,6 +112,14 @@ def icon192():
 def icon512():
     return send_from_directory(app.static_folder, 'icon-512.png', mimetype='image/png')
 
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory(app.static_folder, 'sitemap.xml', mimetype='application/xml')
+
 @app.route('/api/me')
 def api_me():
     if NO_AUTH:
