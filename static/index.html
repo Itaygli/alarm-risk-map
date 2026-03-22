@@ -320,25 +320,32 @@
     .risk-level { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
     .risk-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
 
-    /* ── ALTERNATE ROUTE BANNER ── */
+    /* ── ROUTE ADVICE BANNERS ── */
     .alt-banner {
       display: none;
       margin-top: 12px;
-      background: rgba(0,200,83,.08);
-      border: 1px solid rgba(0,200,83,.3);
       border-radius: 8px;
       padding: 10px 12px;
     }
     .alt-banner.show { display: block; }
+    .alt-banner.safer {
+      background: rgba(0,200,83,.08);
+      border: 1px solid rgba(0,200,83,.3);
+    }
+    .alt-banner.danger {
+      background: rgba(255,68,68,.1);
+      border: 1px solid rgba(255,68,68,.35);
+    }
     .alt-banner-title {
       font-size: 12px;
       font-weight: 700;
-      color: var(--green);
       margin-bottom: 6px;
       display: flex;
       align-items: center;
       gap: 6px;
     }
+    .alt-banner.safer .alt-banner-title { color: var(--green); }
+    .alt-banner.danger .alt-banner-title { color: var(--red); }
     .alt-banner-body {
       font-size: 11px;
       color: var(--muted);
@@ -349,8 +356,6 @@
     .alt-btn {
       width: 100%;
       padding: 8px 10px;
-      background: var(--green);
-      color: #000;
       border: none;
       border-radius: 6px;
       font-size: 12px;
@@ -359,6 +364,8 @@
       transition: filter .15s;
     }
     .alt-btn:hover { filter: brightness(1.15); }
+    .alt-banner.safer .alt-btn { background: var(--green); color: #000; }
+    .alt-banner.danger .alt-btn { background: var(--red); color: #fff; }
 
     /* ── START NAVIGATION BUTTONS ── */
     .nav-btns {
@@ -767,7 +774,7 @@
 
         <!-- Alternate safer route banner -->
         <div class="alt-banner" id="alt-banner">
-          <div class="alt-banner-title">🛡️ Safer route available</div>
+          <div class="alt-banner-title" id="alt-banner-title">🛡️ Safer route available</div>
           <div class="alt-banner-body" id="alt-body"></div>
           <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()">Switch to safer route</button>
         </div>
@@ -843,6 +850,13 @@
         <span>Confirmed Hit Sites</span>
         <label class="toggle">
           <input type="checkbox" id="tog-hits" checked onchange="toggleLayer('hits')" />
+          <span class="tslider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>🏛️ Public Shelters (zoom in)</span>
+        <label class="toggle">
+          <input type="checkbox" id="tog-shelters" checked onchange="toggleLayer('shelters')" />
           <span class="tslider"></span>
         </label>
       </div>
@@ -1756,6 +1770,125 @@ function buildHitMarkers() {
 }
 
 // ═══════════════════════════════════════════════
+//  PUBLIC SHELTERS (curated major locations)
+//  Format: [lat, lng, name, city]
+// ═══════════════════════════════════════════════
+const SHELTERS = [
+  // Tel Aviv area
+  [32.0853, 34.7818, 'Dizengoff Center shelter', 'Tel Aviv'],
+  [32.0731, 34.7925, 'Azrieli Towers shelter', 'Tel Aviv'],
+  [32.0636, 34.7681, 'Carmel Market shelter', 'Tel Aviv'],
+  [32.0901, 34.7741, 'Tel Aviv Port shelter', 'Tel Aviv'],
+  [32.0554, 34.7627, 'Florentin shelter', 'Tel Aviv'],
+  [32.0775, 34.7744, 'Habima shelter', 'Tel Aviv'],
+  [32.0467, 34.7592, 'Jaffa shelter', 'Tel Aviv'],
+  // Haifa
+  [32.7940, 34.9896, 'Haifa Central shelter', 'Haifa'],
+  [32.8191, 35.0042, 'Haifa Carmel shelter', 'Haifa'],
+  [32.7873, 35.0131, 'Haifa Hadar shelter', 'Haifa'],
+  [32.8034, 34.9873, 'Bat Galim shelter', 'Haifa'],
+  // Jerusalem
+  [31.7810, 35.2295, 'Mamilla shelter', 'Jerusalem'],
+  [31.7767, 35.2345, 'Old City Jaffa Gate shelter', 'Jerusalem'],
+  [31.7857, 35.2188, 'Machane Yehuda shelter', 'Jerusalem'],
+  [31.7912, 35.2032, 'Jerusalem Central Bus shelter', 'Jerusalem'],
+  // Beer Sheva
+  [31.2518, 34.7913, 'Beer Sheva Central shelter', 'Beer Sheva'],
+  [31.2630, 34.8012, 'BGU campus shelter', 'Beer Sheva'],
+  [31.2440, 34.7850, 'Beer Sheva Old City shelter', 'Beer Sheva'],
+  // Ashkelon
+  [31.6689, 34.5743, 'Ashkelon Marina shelter', 'Ashkelon'],
+  [31.6600, 34.5690, 'Ashkelon Center shelter', 'Ashkelon'],
+  // Ashdod
+  [31.8045, 34.6553, 'Ashdod City Hall shelter', 'Ashdod'],
+  [31.7975, 34.6440, 'Ashdod Mall shelter', 'Ashdod'],
+  // Netanya
+  [32.3215, 34.8532, 'Netanya Center shelter', 'Netanya'],
+  [32.3290, 34.8580, 'Netanya North shelter', 'Netanya'],
+  // Rishon LeZion
+  [31.9730, 34.7894, 'Rishon Center shelter', 'Rishon LeZion'],
+  // Petah Tikva
+  [32.0841, 34.8878, 'Petah Tikva Center shelter', 'Petah Tikva'],
+  // Sderot (high density due to Gaza proximity)
+  [31.5268, 34.5955, 'Sderot Bus Station shelter', 'Sderot'],
+  [31.5234, 34.5970, 'Sderot Center shelter', 'Sderot'],
+  [31.5210, 34.5920, 'Sderot South shelter', 'Sderot'],
+  // Kiryat Shmona
+  [33.2075, 35.5714, 'Kiryat Shmona Center shelter', 'Kiryat Shmona'],
+  [33.2120, 35.5680, 'Kiryat Shmona North shelter', 'Kiryat Shmona'],
+  // Nahariya
+  [33.0070, 35.0980, 'Nahariya Center shelter', 'Nahariya'],
+  // Safed
+  [32.9648, 35.4961, 'Safed Center shelter', 'Safed'],
+  // Acre
+  [32.9260, 35.0840, 'Acre Old City shelter', 'Acre'],
+  // Tiberias
+  [32.7950, 35.5300, 'Tiberias Center shelter', 'Tiberias'],
+  // Netivot
+  [31.4210, 34.5880, 'Netivot Center shelter', 'Netivot'],
+  // Ofakim
+  [31.3150, 34.6190, 'Ofakim Center shelter', 'Ofakim'],
+];
+
+let shelterLayer = null;
+
+function buildShelterLayer() {
+  if (shelterLayer) map.removeLayer(shelterLayer);
+  shelterLayer = L.layerGroup();
+  for (const [lat, lng, name, city] of SHELTERS) {
+    L.marker([lat, lng], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="width:20px;height:20px;display:flex;align-items:center;justify-content:center;
+          background:rgba(33,150,243,.85);border-radius:4px;border:1.5px solid #fff;
+          font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.4)">🏛️</div>`,
+        iconSize: [20, 20],
+        iconAnchor: [10, 10],
+      }),
+    }).bindPopup(`<b>🏛️ Public Shelter</b><br>${name}<br><span style="color:#888">${city}</span>`)
+      .addTo(shelterLayer);
+  }
+  // Only show when zoomed in (≥ 12)
+  function updateShelterVis() {
+    if (!document.getElementById('tog-shelters')?.checked) return;
+    if (map.getZoom() >= 12) { if (!map.hasLayer(shelterLayer)) map.addLayer(shelterLayer); }
+    else { if (map.hasLayer(shelterLayer)) map.removeLayer(shelterLayer); }
+  }
+  map.on('zoomend', updateShelterVis);
+  updateShelterVis();
+}
+
+// Find shelters near the route and mark them on the gradient bar
+function markSheltersOnRoute(pts) {
+  if (!pts.length) return;
+  const bar = document.getElementById('seg-bar');
+  // Remove old shelter dots
+  bar.querySelectorAll('.shelter-dot').forEach(el => el.remove());
+  // Make bar position:relative for dots
+  bar.style.position = 'relative';
+
+  for (const [slat, slng] of SHELTERS) {
+    // Find closest route point
+    let minD = Infinity, minIdx = -1;
+    for (let i = 0; i < pts.length; i++) {
+      const d = haversine(pts[i].lat, pts[i].lng, slat, slng);
+      if (d < minD) { minD = d; minIdx = i; }
+    }
+    // Only show shelters within 2km of the route
+    if (minD < 2) {
+      const pct = (minIdx / (pts.length - 1)) * 100;
+      const dot = document.createElement('div');
+      dot.className = 'shelter-dot';
+      dot.title = SHELTERS.find(s => s[0] === slat && s[1] === slng)?.[2] || 'Shelter';
+      dot.style.cssText = `position:absolute;top:-3px;left:${pct}%;width:8px;height:16px;
+        background:#2196f3;border:1.5px solid #fff;border-radius:2px;transform:translateX(-50%);
+        cursor:pointer;z-index:2;box-shadow:0 1px 3px rgba(0,0,0,.4)`;
+      bar.appendChild(dot);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════
 //  CITY LOOKUP
 // ═══════════════════════════════════════════════
 function lookupCity(raw) {
@@ -2070,6 +2203,7 @@ function init() {
 
   // Confirmed hit markers (static dataset — always available)
   buildHitMarkers();
+  buildShelterLayer();
 
   const now = new Date();
   document.getElementById('inp-time').value =
@@ -2323,31 +2457,60 @@ async function doCalculate() {
     drawRoute(primary.coords, primary.risk.pts);
     updateUI(primary.risk, primary.route.distance, primary.route.duration);
 
-    // If risk is high (≥ 40%), look for a safer alternative
-    const HIGH_RISK_THRESHOLD = 0.40;
-    if (primary.risk.avg >= HIGH_RISK_THRESHOLD && scored.length > 1) {
-      // Find the route with the lowest average risk
+    // Route safety advice
+    const banner = document.getElementById('alt-banner');
+    const pPct = Math.round(primary.risk.avg * 100);
+
+    if (primary.risk.avg >= 0.75) {
+      // EXTREME risk — warn to avoid driving entirely
+      banner.className = 'alt-banner danger show';
+      document.getElementById('alt-banner-title').innerHTML = '⚠️ Avoid this route';
+      let body = `Risk level is <b style="color:var(--red)">${pPct}%</b> — this route passes through ` +
+        `heavily targeted zones.<br><b>Consider postponing travel or using a shelter-to-shelter plan.</b>`;
+
+      // Still check for a safer alt
+      if (scored.length > 1) {
+        const safest = scored.slice(1).reduce((best, cur) =>
+          cur.risk.avg < best.risk.avg ? cur : best, scored[1]);
+        const reduction = primary.risk.avg - safest.risk.avg;
+        if (reduction >= 0.05) {
+          pendingAltRoute = safest;
+          const sPct = Math.round(safest.risk.avg * 100);
+          const sDist = (safest.route.distance / 1000).toFixed(1);
+          body += `<br><br>Safest alternative: <b style="color:var(--yellow)">${sPct}%</b> risk · ${sDist} km`;
+          document.getElementById('alt-btn').textContent = 'Switch to safest route';
+          document.getElementById('alt-btn').style.display = '';
+          drawAltPreview(safest.coords);
+        } else {
+          document.getElementById('alt-btn').style.display = 'none';
+        }
+      } else {
+        document.getElementById('alt-btn').style.display = 'none';
+      }
+      document.getElementById('alt-body').innerHTML = body;
+
+    } else if (primary.risk.avg >= 0.40 && scored.length > 1) {
+      // HIGH risk — suggest safer alternative
       const safest = scored.slice(1).reduce((best, cur) =>
         cur.risk.avg < best.risk.avg ? cur : best, scored[1]);
-
       const reduction = primary.risk.avg - safest.risk.avg;
-      // Only suggest if meaningfully safer (≥5% reduction)
+
       if (reduction >= 0.05) {
         pendingAltRoute = safest;
-        const pPct = Math.round(primary.risk.avg * 100);
         const sPct = Math.round(safest.risk.avg * 100);
         const sDist = (safest.route.distance / 1000).toFixed(1);
         const sDur  = Math.round(safest.route.duration / 60);
         const sDurF = sDur >= 60 ? `${Math.floor(sDur/60)}h ${sDur%60}m` : `${sDur}m`;
 
+        banner.className = 'alt-banner safer show';
+        document.getElementById('alt-banner-title').innerHTML = '🛡️ Safer route available';
         document.getElementById('alt-body').innerHTML =
           `Current route risk: <b>${pPct}%</b><br>` +
           `Safer route risk: <b style="color:var(--green)">${sPct}%</b> ` +
           `(−${Math.round(reduction * 100)}%)<br>` +
           `Distance: <b>${sDist} km</b> · Duration: <b>${sDurF}</b>`;
-        document.getElementById('alt-banner').classList.add('show');
-
-        // Draw the alternative as a dashed line on the map
+        document.getElementById('alt-btn').textContent = 'Switch to safer route';
+        document.getElementById('alt-btn').style.display = '';
         drawAltPreview(safest.coords);
       }
     }
@@ -2523,6 +2686,7 @@ function updateUI(risk, distM, durS) {
 
 function buildSegments(pts) {
   const bar = document.getElementById('seg-bar');
+  bar.querySelectorAll('.shelter-dot').forEach(el => el.remove());
   if (!pts.length) { bar.style.background = 'var(--card)'; return; }
   // Build a CSS linear-gradient with color stops matching risk along the route
   const stops = pts.map((p, i) => {
@@ -2530,6 +2694,8 @@ function buildSegments(pts) {
     return `${riskColor(p.r)} ${pct.toFixed(1)}%`;
   });
   bar.style.background = `linear-gradient(to right, ${stops.join(', ')})`;
+  // Mark shelters near the route on the gradient bar
+  markSheltersOnRoute(pts);
 }
 
 // ═══════════════════════════════════════════════
@@ -2592,6 +2758,12 @@ function toggleLayer(which) {
     document.getElementById('tog-cities').checked ? map.addLayer(citiesLayer) : map.removeLayer(citiesLayer);
   } else if (which === 'hits') {
     document.getElementById('tog-hits').checked ? map.addLayer(hitMarkersLayer) : map.removeLayer(hitMarkersLayer);
+  } else if (which === 'shelters') {
+    if (document.getElementById('tog-shelters').checked) {
+      if (map.getZoom() >= 12 && shelterLayer) map.addLayer(shelterLayer);
+    } else {
+      if (shelterLayer) map.removeLayer(shelterLayer);
+    }
   }
 }
 
