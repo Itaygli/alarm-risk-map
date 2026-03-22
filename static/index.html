@@ -8,6 +8,13 @@
   <meta http-equiv="Expires" content="0" />
   <title>Navigate Smart. Stay Out of Range.</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23e6edf3'><path d='M12 2c0 0-4 4-4 10s4 10 4 10 4-4 4-10S12 2 12 2zm0 4a2 2 0 1 1 0 4 2 2 0 0 1 0-4zM8 18l-2 4h2l2-2 2 2h2l-2-4H8z'/></svg>" />
+  <link rel="manifest" href="/manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Risk Map" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <meta name="theme-color" content="#0d1117" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
@@ -3097,6 +3104,11 @@ function setLoading(on) {
   document.getElementById('btn-calc').disabled = on;
 }
 function setStatus(msg) { document.getElementById('status-text').textContent = msg; }
+
+// ── PWA Service Worker ──
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
 
 // ── Start ──
 init();
