@@ -2982,16 +2982,56 @@ function doClear() {
 //  MOBILE SIDEBAR DRAWER
 // ═══════════════════════════════════════════════
 let mobileGoBarVisible = false;
+let mobileRouteReady  = false;   // true once a route is calculated
+let staticNavVisible   = true;    // true when #nav-btns is in viewport
+
+// Watch the static nav buttons — show/hide the sticky Go bar accordingly
+// Use sidebar as root since buttons scroll inside the drawer on mobile
+let navBtnsObserver = null;
+function ensureNavObserver() {
+  if (navBtnsObserver) return;
+  const sidebar = document.querySelector('.sidebar');
+  navBtnsObserver = new IntersectionObserver(([entry]) => {
+    staticNavVisible = entry.isIntersecting;
+    syncMobileGoBar();
+  }, { root: sidebar, threshold: 0.1 });
+}
+
+function syncMobileGoBar() {
+  if (window.innerWidth > 640) return;
+  const bar = document.getElementById('mob-go-bar');
+  const fab = document.getElementById('mob-fab');
+  // Show sticky bar only when route is ready AND static buttons are scrolled away
+  if (mobileRouteReady && !staticNavVisible) {
+    bar.style.display = 'block';
+    fab.style.display = 'none';
+    mobileGoBarVisible = true;
+  } else {
+    bar.style.display = 'none';
+    mobileGoBarVisible = false;
+    // Only restore FAB if sidebar is closed
+    if (!document.querySelector('.sidebar.mob-open')) {
+      fab.style.display = 'flex';
+    }
+  }
+}
 
 function showMobileGoBar() {
-  if (window.innerWidth > 640) return; // desktop — skip
-  document.getElementById('mob-go-bar').style.display = 'block';
-  document.getElementById('mob-fab').style.display = 'none';
-  mobileGoBarVisible = true;
+  if (window.innerWidth > 640) return;
+  mobileRouteReady = true;
+  // Start observing the static nav buttons for scroll visibility
+  ensureNavObserver();
+  const el = document.getElementById('nav-btns');
+  if (el) navBtnsObserver.observe(el);
+  syncMobileGoBar();
 }
 function hideMobileGoBar() {
+  mobileRouteReady = false;
   document.getElementById('mob-go-bar').style.display = 'none';
   mobileGoBarVisible = false;
+  // Stop observing
+  const el = document.getElementById('nav-btns');
+  if (el) navBtnsObserver.unobserve(el);
   // Re-show FAB on mobile
   if (window.innerWidth <= 640) {
     document.getElementById('mob-fab').style.display = 'flex';
