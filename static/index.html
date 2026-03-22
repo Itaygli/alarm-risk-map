@@ -734,7 +734,7 @@
         <input id="inp-time" type="datetime-local" />
       </div>
 
-      <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()">Calculate Route Risk</button>
+      <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()">Navigate</button>
       <!-- Navigation buttons (shown after route calculation) -->
       <div class="nav-btns" id="nav-btns" style="margin-top:6px">
         <a class="nav-link nav-waze" id="nav-waze" href="#" target="_blank" rel="noopener">
@@ -2422,6 +2422,7 @@ function clearInput(type) {
   document.getElementById('alt-banner').className = 'alt-banner';
   document.getElementById('nav-btns').classList.remove('show');
   document.getElementById('risk-content').style.display = 'none';
+  document.getElementById('btn-calc').style.display = '';
   refreshStatus();
 }
 
@@ -2550,6 +2551,7 @@ async function doCalculate() {
     }
 
     setStatus('Analysis complete ✓');
+    document.getElementById('btn-calc').style.display = 'none';
     if (window.innerWidth <= 640) openMobileSidebar();
   } catch (e) {
     console.error(e);
