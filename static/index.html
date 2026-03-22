@@ -155,6 +155,113 @@
     }
     input:focus { border-color: var(--blue); }
 
+    /* ── GOOGLE MAPS–STYLE ROUTE BAR ── */
+    .route-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .dot-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 13px;
+      gap: 0;
+      flex-shrink: 0;
+      width: 14px;
+    }
+    .dot-col .dot-origin {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+    .dot-col .dot-line {
+      width: 2px;
+      flex: 1;
+      min-height: 18px;
+      background: repeating-linear-gradient(
+        to bottom, var(--muted) 0 4px, transparent 4px 8px
+      );
+    }
+    .dot-col .dot-dest {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--red);
+      flex-shrink: 0;
+    }
+    .inputs-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 0;
+    }
+    .inp-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .inp-row input[type="text"] {
+      flex: 1;
+      min-width: 0;
+      padding: 9px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+    }
+    .loc-btn, .swap-btn {
+      width: 32px; height: 32px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      color: var(--muted);
+      font-size: 15px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background .15s, color .15s;
+    }
+    .loc-btn:hover, .swap-btn:hover {
+      background: var(--border);
+      color: var(--text);
+    }
+    .swap-btn { font-size: 14px; align-self: center; }
+    .time-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .time-row label {
+      font-size: 11px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .time-row input {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 10px;
+      border-radius: 8px;
+    }
+
+    /* ── MY-LOCATION BLUE DOT ── */
+    .my-loc-dot {
+      background: #4285f4;
+      border: 3px solid #fff;
+      box-shadow: 0 0 8px rgba(66,133,244,.6);
+    }
+    @keyframes loc-pulse {
+      0%   { transform: scale(1);   opacity: .35; }
+      100% { transform: scale(2.5); opacity: 0; }
+    }
+    .loc-pulse-ring {
+      animation: loc-pulse 2s ease-out infinite;
+      background: #4285f4;
+      border-radius: 50%;
+    }
+
     /* ── BUTTONS ── */
     .btn {
       width: 100%; padding: 9px 12px;
@@ -559,28 +666,33 @@
               onclick="loadAlarmHistory()">↻ Refresh</button>
     </div>
 
-    <!-- Route planning -->
+    <!-- Route planning (Google Maps–style) -->
     <div class="sec">
       <div class="sec-title">Route Planning</div>
 
-      <div class="input-wrap">
-        <div class="input-label">
-          <div class="dot" style="background:var(--green)"></div>
-          Origin
+      <div class="route-bar">
+        <!-- Dot column (green ● ┆ red ●) -->
+        <div class="dot-col">
+          <div class="dot-origin"></div>
+          <div class="dot-line"></div>
+          <div class="dot-dest"></div>
         </div>
-        <input id="inp-origin" type="text" placeholder="City or address…" autocomplete="off" />
+
+        <!-- Input column -->
+        <div class="inputs-col">
+          <div class="inp-row">
+            <input id="inp-origin" type="text" placeholder="Your location" autocomplete="off" />
+            <button class="loc-btn" onclick="detectLocation()" title="Use my location">◎</button>
+          </div>
+          <div class="inp-row">
+            <input id="inp-dest" type="text" placeholder="Choose destination" autocomplete="off" />
+            <button class="swap-btn" onclick="swapPoints()" title="Swap origin &amp; destination">⇅</button>
+          </div>
+        </div>
       </div>
 
-      <div class="input-wrap">
-        <div class="input-label">
-          <div class="dot" style="background:var(--red)"></div>
-          Destination
-        </div>
-        <input id="inp-dest" type="text" placeholder="City or address…" autocomplete="off" />
-      </div>
-
-      <div class="input-wrap">
-        <div class="input-label">🕐 Travel Date &amp; Time</div>
+      <div class="time-row">
+        <label>🕐 Depart</label>
         <input id="inp-time" type="datetime-local" />
       </div>
 
@@ -1921,6 +2033,9 @@ function init() {
 
   // Kick off live data fetch
   loadAlarmHistory();
+
+  // Auto-detect user location for origin
+  detectLocation();
 }
 
 function coordLabel(ll) {
@@ -2018,6 +2133,90 @@ function refreshStatus() {
   else if (latlngOrigin && !latlngDest) el.textContent = 'Origin set — enter destination';
   else if (!latlngOrigin && latlngDest) el.textContent = 'Destination set — enter origin';
   else el.textContent = 'Both points set — click Calculate';
+}
+
+// ═══════════════════════════════════════════════
+//  GEOLOCATION — auto-detect user location
+// ═══════════════════════════════════════════════
+let myLocMarker = null;   // blue dot for user location
+let myLocCircle = null;   // accuracy radius circle
+
+function detectLocation() {
+  if (!navigator.geolocation) return;
+  setStatus('Detecting your location…');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const ll = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      const acc = pos.coords.accuracy; // metres
+
+      // Blue dot on map
+      if (myLocMarker) map.removeLayer(myLocMarker);
+      if (myLocCircle) map.removeLayer(myLocCircle);
+      myLocCircle = L.circle([ll.lat, ll.lng], {
+        radius: Math.min(acc, 5000),
+        color: '#4285f4', fillColor: '#4285f4',
+        fillOpacity: 0.12, weight: 1, opacity: 0.4,
+      }).addTo(map);
+      myLocMarker = L.circleMarker([ll.lat, ll.lng], {
+        radius: 7, color: '#fff', fillColor: '#4285f4',
+        fillOpacity: 1, weight: 3,
+        className: 'my-loc-dot',
+      }).addTo(map).bindTooltip('You are here');
+
+      // Reverse geocode for a human-readable name
+      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${ll.lat}&lon=${ll.lng}&format=json&zoom=16`,
+        { headers: { 'Accept-Language': 'en' } })
+        .then(r => r.json())
+        .then(data => {
+          const parts = [];
+          const a = data.address || {};
+          if (a.road) parts.push(a.road);
+          if (a.city || a.town || a.village) parts.push(a.city || a.town || a.village);
+          const name = parts.length ? parts.join(', ') : coordLabel(ll);
+          document.getElementById('inp-origin').value = name;
+          setPoint('origin', ll, name);
+        })
+        .catch(() => {
+          document.getElementById('inp-origin').value = coordLabel(ll);
+          setPoint('origin', ll, coordLabel(ll));
+        });
+    },
+    err => {
+      console.warn('Geolocation failed:', err.message);
+      setStatus('Location unavailable — enter origin manually');
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+}
+
+// ═══════════════════════════════════════════════
+//  SWAP ORIGIN ↔ DESTINATION
+// ═══════════════════════════════════════════════
+function swapPoints() {
+  // Swap lat/lng
+  const tmpLL = latlngOrigin;
+  latlngOrigin = latlngDest;
+  latlngDest   = tmpLL;
+
+  // Swap markers
+  const tmpM = markerOrigin;
+  markerOrigin = markerDest;
+  markerDest   = tmpM;
+
+  // Rebuild markers with correct colors
+  if (markerOrigin) { map.removeLayer(markerOrigin); }
+  if (markerDest)   { map.removeLayer(markerDest); }
+  if (latlngOrigin) markerOrigin = makeMarker(latlngOrigin, '#00c853', 'Start').addTo(map);
+  if (latlngDest)   markerDest   = makeMarker(latlngDest,   '#ff4444', 'End').addTo(map);
+
+  // Swap input text
+  const inpO = document.getElementById('inp-origin');
+  const inpD = document.getElementById('inp-dest');
+  const tmp  = inpO.value;
+  inpO.value = inpD.value;
+  inpD.value = tmp;
+
+  refreshStatus();
 }
 
 // ═══════════════════════════════════════════════
