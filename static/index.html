@@ -497,27 +497,40 @@
     /* ══════════════════════════════════════════
        MOBILE FAB + DRAWER (hidden on desktop)
     ══════════════════════════════════════════ */
+    /* Waze-style "Where to?" bar (mobile only) */
     #mob-fab {
       display: none;
       position: fixed;
       bottom: 24px;
-      right: 18px;
+      left: 16px;
+      right: 16px;
       z-index: 950;
-      background: var(--blue);
-      color: #fff;
-      border: none;
-      border-radius: 50%;
-      width: 56px;
-      height: 56px;
-      font-size: 24px;
+      background: var(--panel);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 28px;
+      height: 52px;
+      font-size: 16px;
       font-family: inherit;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(0,0,0,.55);
+      box-shadow: 0 4px 20px rgba(0,0,0,.5);
       align-items: center;
-      justify-content: center;
+      padding: 0 20px;
+      gap: 12px;
       transition: transform .15s, box-shadow .15s;
     }
-    #mob-fab:active { transform: scale(.9); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+    #mob-fab .fab-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    #mob-fab .fab-text {
+      flex: 1;
+      text-align: left;
+      font-weight: 500;
+      color: var(--muted);
+    }
+    #mob-fab.is-open .fab-text { color: var(--text); }
+    #mob-fab:active { transform: scale(.98); box-shadow: 0 2px 12px rgba(0,0,0,.4); }
 
     #mob-backdrop {
       display: none;
@@ -644,7 +657,10 @@
 
 <!-- Mobile: backdrop + FAB -->
 <div id="mob-backdrop" onclick="closeMobileSidebar()"></div>
-<button id="mob-fab" onclick="toggleMobileSidebar()" aria-label="Navigation panel">🧭</button>
+<div id="mob-fab" onclick="openMobileWithFocus()" role="button" aria-label="Search destination">
+  <span class="fab-icon">🔍</span>
+  <span class="fab-text">Where to?</span>
+</div>
 
 <!-- MAIN -->
 <div class="main">
@@ -2530,12 +2546,25 @@ function doClear() {
 function openMobileSidebar() {
   document.querySelector('.sidebar').classList.add('mob-open');
   document.getElementById('mob-backdrop').classList.add('mob-open');
-  document.getElementById('mob-fab').textContent = '✕';
+  const fab = document.getElementById('mob-fab');
+  fab.classList.add('is-open');
+  fab.querySelector('.fab-icon').textContent = '✕';
+  fab.querySelector('.fab-text').textContent = 'Close';
+  fab.onclick = closeMobileSidebar;
 }
 function closeMobileSidebar() {
   document.querySelector('.sidebar').classList.remove('mob-open');
   document.getElementById('mob-backdrop').classList.remove('mob-open');
-  document.getElementById('mob-fab').textContent = '🧭';
+  const fab = document.getElementById('mob-fab');
+  fab.classList.remove('is-open');
+  fab.querySelector('.fab-icon').textContent = '🔍';
+  fab.querySelector('.fab-text').textContent = 'Where to?';
+  fab.onclick = openMobileWithFocus;
+}
+function openMobileWithFocus() {
+  openMobileSidebar();
+  // Focus the destination input after the drawer animation
+  setTimeout(() => document.getElementById('inp-dest').focus(), 350);
 }
 function toggleMobileSidebar() {
   document.querySelector('.sidebar').classList.contains('mob-open')
