@@ -777,9 +777,10 @@
       }
       .sidebar.mob-open { transform: translateY(0); }
 
-      /* Peek state: only show summary + risk circle + timeline */
+      /* Peek state: limit height instead of transform — reliable touch on all devices */
       .sidebar.mob-peek {
-        transform: translateY(calc(100% - 300px));
+        transform: translateY(0);
+        max-height: 280px;
         overflow: hidden;
       }
       /* JS toggles .peek-hide on elements that should be hidden in peek */
