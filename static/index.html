@@ -317,6 +317,46 @@
     .risk-level { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
     .risk-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
 
+    /* ── ALTERNATE ROUTE BANNER ── */
+    .alt-banner {
+      display: none;
+      margin-top: 12px;
+      background: rgba(0,200,83,.08);
+      border: 1px solid rgba(0,200,83,.3);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .alt-banner.show { display: block; }
+    .alt-banner-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .alt-banner-body {
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .alt-banner-body b { color: var(--text); }
+    .alt-btn {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--green);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: filter .15s;
+    }
+    .alt-btn:hover { filter: brightness(1.15); }
+
     /* ── STATS GRID ── */
     .stats-grid {
       display: grid; grid-template-columns: 1fr 1fr;
@@ -737,6 +777,13 @@
             <div class="stat-name">Peak Risk</div>
           </div>
         </div>
+        <!-- Alternate safer route banner -->
+        <div class="alt-banner" id="alt-banner">
+          <div class="alt-banner-title">🛡️ Safer route available</div>
+          <div class="alt-banner-body" id="alt-body"></div>
+          <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()">Switch to safer route</button>
+        </div>
+
         <div style="margin-top:12px">
           <div class="sec-title" style="margin-bottom:8px">Route Segments</div>
           <div id="seg-list"></div>
@@ -2220,30 +2267,71 @@ function swapPoints() {
 // ═══════════════════════════════════════════════
 //  ROUTE CALCULATE
 // ═══════════════════════════════════════════════
+// Stored alternate route for "Switch to safer route" button
+let pendingAltRoute = null;
+
 async function doCalculate() {
   if (!latlngOrigin || !latlngDest) { alert('Set both origin and destination.'); return; }
   setLoading(true);
   setStatus('Fetching route…');
+  pendingAltRoute = null;
+  document.getElementById('alt-banner').classList.remove('show');
 
   try {
+    // Request up to 3 alternative routes from OSRM
     const osrm = `https://router.project-osrm.org/route/v1/driving/` +
       `${latlngOrigin.lng},${latlngOrigin.lat};${latlngDest.lng},${latlngDest.lat}` +
-      `?overview=full&geometries=geojson`;
+      `?overview=full&geometries=geojson&alternatives=3`;
     const data = await (await fetch(osrm)).json();
     if (data.code !== 'Ok' || !data.routes?.length) throw new Error('Routing failed');
 
-    const route  = data.routes[0];
-    const coords = route.geometry.coordinates;
-    const hour   = (() => {
+    const hour = (() => {
       const v = document.getElementById('inp-time').value;
       return v ? new Date(v).getHours() : new Date().getHours();
     })();
-    const risk = calcRisk(coords, hour);
 
-    drawRoute(coords, risk.pts);
-    updateUI(risk, route.distance, route.duration);
+    // Score all routes
+    const scored = data.routes.map((route, idx) => {
+      const coords = route.geometry.coordinates;
+      const risk   = calcRisk(coords, hour);
+      return { route, coords, risk, idx };
+    });
+
+    // Primary route = first one (fastest / most direct)
+    const primary = scored[0];
+    drawRoute(primary.coords, primary.risk.pts);
+    updateUI(primary.risk, primary.route.distance, primary.route.duration);
+
+    // If risk is high (≥ 40%), look for a safer alternative
+    const HIGH_RISK_THRESHOLD = 0.40;
+    if (primary.risk.avg >= HIGH_RISK_THRESHOLD && scored.length > 1) {
+      // Find the route with the lowest average risk
+      const safest = scored.slice(1).reduce((best, cur) =>
+        cur.risk.avg < best.risk.avg ? cur : best, scored[1]);
+
+      const reduction = primary.risk.avg - safest.risk.avg;
+      // Only suggest if meaningfully safer (≥5% reduction)
+      if (reduction >= 0.05) {
+        pendingAltRoute = safest;
+        const pPct = Math.round(primary.risk.avg * 100);
+        const sPct = Math.round(safest.risk.avg * 100);
+        const sDist = (safest.route.distance / 1000).toFixed(1);
+        const sDur  = Math.round(safest.route.duration / 60);
+        const sDurF = sDur >= 60 ? `${Math.floor(sDur/60)}h ${sDur%60}m` : `${sDur}m`;
+
+        document.getElementById('alt-body').innerHTML =
+          `Current route risk: <b>${pPct}%</b><br>` +
+          `Safer route risk: <b style="color:var(--green)">${sPct}%</b> ` +
+          `(−${Math.round(reduction * 100)}%)<br>` +
+          `Distance: <b>${sDist} km</b> · Duration: <b>${sDurF}</b>`;
+        document.getElementById('alt-banner').classList.add('show');
+
+        // Draw the alternative as a dashed line on the map
+        drawAltPreview(safest.coords);
+      }
+    }
+
     setStatus('Analysis complete ✓');
-    // On mobile, slide the panel up so the user sees the results
     if (window.innerWidth <= 640) openMobileSidebar();
   } catch (e) {
     console.error(e);
@@ -2251,6 +2339,31 @@ async function doCalculate() {
     alert('Could not calculate route. Check connection and try again.');
   }
   setLoading(false);
+}
+
+// Draw a dashed preview of the alternate route on the map
+let altPreviewLayer = null;
+function drawAltPreview(coords) {
+  if (altPreviewLayer) { map.removeLayer(altPreviewLayer); altPreviewLayer = null; }
+  const latlngs = coords.map(c => [c[1], c[0]]);
+  altPreviewLayer = L.polyline(latlngs, {
+    color: '#00c853', weight: 4, opacity: 0.5,
+    dashArray: '8, 10',
+  }).addTo(map).bindTooltip('Safer route', { sticky: true });
+}
+
+// Switch to the safer alternate route
+function switchToAltRoute() {
+  if (!pendingAltRoute) return;
+  const { coords, risk, route } = pendingAltRoute;
+  pendingAltRoute = null;
+  // Remove the alt preview
+  if (altPreviewLayer) { map.removeLayer(altPreviewLayer); altPreviewLayer = null; }
+  document.getElementById('alt-banner').classList.remove('show');
+  // Draw and show the safer route
+  drawRoute(coords, risk.pts);
+  updateUI(risk, route.distance, route.duration);
+  setStatus('Switched to safer route ✓');
 }
 
 // ═══════════════════════════════════════════════
@@ -2406,6 +2519,9 @@ function doClear() {
   if (markerDest)   { map.removeLayer(markerDest);   markerDest   = null; }
   latlngOrigin = latlngDest = null;
   routeGroup.clearLayers();
+  if (altPreviewLayer) { map.removeLayer(altPreviewLayer); altPreviewLayer = null; }
+  pendingAltRoute = null;
+  document.getElementById('alt-banner').classList.remove('show');
   document.getElementById('inp-origin').value = '';
   document.getElementById('inp-dest').value   = '';
   document.getElementById('risk-placeholder').style.display = 'block';
