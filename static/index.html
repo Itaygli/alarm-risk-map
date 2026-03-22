@@ -1,0 +1,2094 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Israel Alarm Risk Analyzer — 2026</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    :root {
+      --bg: #0d1117;
+      --panel: #161b22;
+      --card: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --red: #ff4444;
+      --orange: #ff8c00;
+      --yellow: #ffd700;
+      --green: #00c853;
+      --blue: #2196f3;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--panel);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 1000;
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .header-left h1 { font-size: 17px; font-weight: 700; }
+    .header-left span.sub { font-size: 12px; color: var(--muted); }
+    .badge {
+      background: rgba(255,68,68,.14);
+      border: 1px solid var(--red);
+      color: var(--red);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 12px;
+      letter-spacing: .5px;
+      text-transform: uppercase;
+    }
+    .live-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--green);
+      animation: blink 2s infinite;
+      flex-shrink: 0;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.25} }
+
+    /* ── LAYOUT ── */
+    .main { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 310px;
+      min-width: 310px;
+      background: var(--panel);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .sec { padding: 14px 15px; border-bottom: 1px solid var(--border); }
+    .sec-title {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin-bottom: 11px;
+    }
+
+    /* ── DATA SOURCE PANEL ── */
+    .data-row {
+      display: flex; align-items: baseline;
+      justify-content: space-between;
+      padding: 4px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    .data-row:last-child { border-bottom: none; }
+    .data-val { font-weight: 700; font-size: 17px; color: var(--text); }
+    .data-lbl { color: var(--muted); font-size: 10px; }
+    .top-city-row {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 0; font-size: 11px;
+    }
+    .tc-name { flex: 1; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tc-count { color: var(--muted); font-size: 10px; flex-shrink: 0; }
+    .tc-bar-bg { width: 50px; height: 4px; border-radius: 2px; background: var(--border); flex-shrink: 0; }
+    .tc-bar-fill { height: 100%; border-radius: 2px; background: var(--red); }
+    .data-msg {
+      font-size: 12px; color: var(--muted);
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 0;
+    }
+    .data-err { font-size: 11px; color: var(--red); padding: 4px 0; line-height: 1.4; }
+    .src-row {
+      display: flex; flex-direction: column;
+      padding: 4px 0; font-size: 11px; gap: 1px;
+    }
+    .src-label { font-size: 10px; font-weight: 600; letter-spacing: .03em; }
+    .mini-spinner {
+      width: 14px; height: 14px; flex-shrink: 0;
+      border: 2px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    /* ── INPUTS ── */
+    .input-wrap { margin-bottom: 9px; }
+    .input-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; }
+    input[type="text"], input[type="datetime-local"] {
+      width: 100%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 11px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus { border-color: var(--blue); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      width: 100%; padding: 9px 12px;
+      border: none; border-radius: 6px;
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: filter .15s;
+    }
+    .btn:hover { filter: brightness(1.15); }
+    .btn:disabled { opacity: .45; cursor: not-allowed; filter: none; }
+    .btn-primary { background: #1f6feb; color: #fff; }
+    .btn-secondary {
+      background: var(--card);
+      color: var(--muted);
+      border: 1px solid var(--border);
+      margin-top: 6px;
+    }
+
+    /* ── STATUS BAR ── */
+    .status-bar {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--muted);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      padding: 6px 10px;
+      margin-top: 8px;
+    }
+
+    /* ── RISK DISPLAY ── */
+    .risk-placeholder {
+      text-align: center;
+      color: var(--muted);
+      padding: 18px 0;
+      font-size: 13px;
+    }
+    .risk-placeholder .icon { font-size: 30px; margin-bottom: 7px; }
+
+    .risk-circle-wrap { text-align: center; padding: 10px 0 14px; }
+    .risk-circle {
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      border: 4px solid var(--green);
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      margin-bottom: 10px;
+      transition: border-color .4s, box-shadow .4s;
+    }
+    .risk-pct { font-size: 26px; font-weight: 800; }
+    .risk-sub { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+    .risk-level { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+    .risk-desc { font-size: 11px; color: var(--muted); line-height: 1.4; }
+
+    /* ── STATS GRID ── */
+    .stats-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 7px; margin-top: 10px;
+    }
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 9px 10px;
+    }
+    .stat-val { font-size: 17px; font-weight: 700; }
+    .stat-name { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+    /* ── SEGMENTS ── */
+    .seg-item {
+      display: flex; align-items: center; gap: 7px;
+      padding: 5px 8px; background: var(--card);
+      border-radius: 4px; font-size: 11px;
+      margin-bottom: 4px;
+    }
+    .seg-label { color: var(--muted); width: 46px; flex-shrink: 0; }
+    .seg-bar-bg {
+      flex: 1; height: 5px; border-radius: 3px;
+      background: var(--border);
+    }
+    .seg-bar-fill { height: 100%; border-radius: 3px; transition: width .4s; }
+    .seg-pct { width: 32px; text-align: right; font-weight: 600; }
+
+    /* ── TOGGLES ── */
+    .toggle-row {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px; font-size: 13px;
+    }
+    .toggle { position: relative; width: 34px; height: 19px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .tslider {
+      position: absolute; inset: 0;
+      background: var(--border); border-radius: 10px;
+      cursor: pointer; transition: .2s;
+    }
+    .tslider::before {
+      content: '';
+      position: absolute; width: 13px; height: 13px;
+      left: 3px; bottom: 3px;
+      background: white; border-radius: 50%;
+      transition: .2s;
+    }
+    input:checked + .tslider { background: var(--blue); }
+    input:checked + .tslider::before { transform: translateX(15px); }
+
+    /* ── LEGEND ── */
+    .legend-row {
+      display: flex; align-items: center;
+      gap: 9px; font-size: 11px; margin-bottom: 5px;
+    }
+    .leg-color { width: 22px; height: 9px; border-radius: 3px; flex-shrink: 0; }
+
+    /* ── DISCLAIMER ── */
+    .disclaimer {
+      padding: 12px 15px;
+      font-size: 10px;
+      color: var(--muted);
+      line-height: 1.5;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ── MAP AREA ── */
+    .map-wrap { flex: 1; position: relative; }
+    #map { width: 100%; height: 100%; }
+
+    /* ── LOADING ── */
+    #loading {
+      display: none;
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      background: rgba(13,17,23,.92);
+      border: 1px solid var(--border);
+      padding: 18px 28px;
+      border-radius: 10px;
+      z-index: 5000;
+      text-align: center;
+      pointer-events: none;
+    }
+    #loading.show { display: block; }
+    .spinner {
+      width: 30px; height: 30px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── MAP HINT ── */
+    .map-hint {
+      position: absolute; bottom: 18px; right: 12px;
+      background: rgba(13,17,23,.82);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      padding: 8px 13px;
+      font-size: 11px; color: var(--muted);
+      z-index: 900; pointer-events: none;
+      line-height: 1.6;
+    }
+
+    /* ── SEARCH DROPDOWN ── */
+    #search-dropdown {
+      position: fixed;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      z-index: 9999;
+      max-height: 180px;
+      overflow-y: auto;
+      box-shadow: 0 6px 24px rgba(0,0,0,.5);
+      display: none;
+    }
+    .drop-item {
+      padding: 8px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      border-bottom: 1px solid var(--border);
+      line-height: 1.3;
+    }
+    .drop-item:last-child { border-bottom: none; }
+    .drop-item:hover { background: rgba(255,255,255,.05); }
+    .drop-item .place-main { color: var(--text); }
+    .drop-item .place-sub { color: var(--muted); font-size: 10px; }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <span style="font-size:22px">🛡️</span>
+    <div>
+      <h1>Israel Alarm Risk Analyzer</h1>
+      <span class="sub">Route risk based on 2026 Pikud HaOref alarm records</span>
+    </div>
+    <span class="badge">2026 Live Data</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:18px">
+    <div style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)">
+      <div class="live-dot" id="hdr-dot"></div>
+      <span id="hdr-status">Loading alarm data…</span>
+    </div>
+    <div id="user-widget" style="display:none;align-items:center;gap:9px">
+      <img id="user-avatar" src="" alt="" width="28" height="28"
+           style="border-radius:50%;border:1px solid var(--border);object-fit:cover" />
+      <span id="user-name" style="font-size:12px;color:var(--muted);max-width:130px;
+            overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <a href="/logout" style="font-size:11px;color:var(--muted);text-decoration:none;
+           border:1px solid var(--border);border-radius:4px;padding:3px 9px">Sign out</a>
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <!-- Data Source -->
+    <div class="sec">
+      <div class="sec-title">2026 Alarm Data — Pikud HaOref</div>
+
+      <!-- Loading state -->
+      <div id="ds-loading" class="data-msg">
+        <div class="mini-spinner"></div>
+        Fetching Jan 1 – today, 2026…
+      </div>
+
+      <!-- Loaded state -->
+      <div id="ds-loaded" style="display:none">
+        <div class="data-row">
+          <span class="data-val" id="ds-total">—</span>
+          <span class="data-lbl">Rocket/missile alarms</span>
+        </div>
+        <div class="data-row">
+          <span class="data-val" id="ds-cities">—</span>
+          <span class="data-lbl">Cities / areas hit</span>
+        </div>
+        <div class="data-row" style="margin-bottom:10px">
+          <span style="font-size:11px;color:var(--muted)" id="ds-range">—</span>
+          <span class="data-lbl">Period</span>
+        </div>
+        <div id="ds-top-wrap">
+          <div class="sec-title" style="margin-bottom:5px">Most Targeted</div>
+          <div id="ds-top"></div>
+        </div>
+      </div>
+
+      <!-- Source breakdown (shown when loaded) -->
+      <div id="ds-sources" style="display:none;margin-top:10px">
+        <div class="sec-title" style="margin-bottom:5px">Threat Sources</div>
+        <div id="ds-source-list"></div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="ds-empty" style="display:none;font-size:12px;color:var(--muted);padding:4px 0">
+        No rocket/missile alarms recorded for 2026 so far.
+      </div>
+
+      <!-- Error state -->
+      <div id="ds-error" class="data-err" style="display:none"></div>
+
+      <button class="btn btn-secondary" style="font-size:11px;padding:6px;margin-top:10px"
+              onclick="loadAlarmHistory()">↻ Refresh</button>
+    </div>
+
+    <!-- Route planning -->
+    <div class="sec">
+      <div class="sec-title">Route Planning</div>
+
+      <div class="input-wrap">
+        <div class="input-label">
+          <div class="dot" style="background:var(--green)"></div>
+          Origin
+        </div>
+        <input id="inp-origin" type="text" placeholder="City or address…" autocomplete="off" />
+      </div>
+
+      <div class="input-wrap">
+        <div class="input-label">
+          <div class="dot" style="background:var(--red)"></div>
+          Destination
+        </div>
+        <input id="inp-dest" type="text" placeholder="City or address…" autocomplete="off" />
+      </div>
+
+      <div class="input-wrap">
+        <div class="input-label">🕐 Travel Date &amp; Time</div>
+        <input id="inp-time" type="datetime-local" />
+      </div>
+
+      <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()">Calculate Route Risk</button>
+      <button class="btn btn-secondary" onclick="doClear()">Clear Route</button>
+
+      <div class="status-bar">
+        <div class="live-dot" id="status-dot"></div>
+        <span id="status-text">Ready — enter origin and destination</span>
+      </div>
+    </div>
+
+    <!-- Risk assessment -->
+    <div class="sec">
+      <div class="sec-title">Risk Assessment</div>
+      <div id="risk-placeholder" class="risk-placeholder">
+        <div class="icon">📍</div>
+        Plan a route to see risk analysis
+      </div>
+      <div id="risk-content" style="display:none">
+        <div class="risk-circle-wrap">
+          <div class="risk-circle" id="risk-circle">
+            <div class="risk-pct" id="risk-pct">0%</div>
+            <div class="risk-sub">avg risk</div>
+          </div>
+          <div class="risk-level" id="risk-level">—</div>
+          <div class="risk-desc" id="risk-desc">—</div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-val" id="s-dist">—</div>
+            <div class="stat-name">Distance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="s-dur">—</div>
+            <div class="stat-name">Duration</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="s-zones">—</div>
+            <div class="stat-name">Risk Zones</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="s-max">—</div>
+            <div class="stat-name">Peak Risk</div>
+          </div>
+        </div>
+        <div style="margin-top:12px">
+          <div class="sec-title" style="margin-bottom:8px">Route Segments</div>
+          <div id="seg-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Layer controls -->
+    <div class="sec">
+      <div class="sec-title">Map Layers</div>
+      <div class="toggle-row">
+        <span>2026 Alarm Heatmap</span>
+        <label class="toggle">
+          <input type="checkbox" id="tog-heat" checked onchange="toggleLayer('heat')" />
+          <span class="tslider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>City Labels</span>
+        <label class="toggle">
+          <input type="checkbox" id="tog-cities" checked onchange="toggleLayer('cities')" />
+          <span class="tslider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>Confirmed Hit Sites</span>
+        <label class="toggle">
+          <input type="checkbox" id="tog-hits" checked onchange="toggleLayer('hits')" />
+          <span class="tslider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <span>Color-coded Route</span>
+        <label class="toggle">
+          <input type="checkbox" id="tog-colorroute" checked />
+          <span class="tslider"></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="sec">
+      <div class="sec-title">Heatmap — Alarm Frequency</div>
+      <div class="legend-row">
+        <div class="leg-color" style="background:linear-gradient(to right,#0055ff,#00aaff)"></div>
+        <span>Very few alarms</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-color" style="background:linear-gradient(to right,#00aaff,#00ffaa)"></div>
+        <span>Low frequency</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-color" style="background:linear-gradient(to right,#00ffaa,#aaff00)"></div>
+        <span>Moderate frequency</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-color" style="background:linear-gradient(to right,#aaff00,#ffcc00)"></div>
+        <span>High frequency</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-color" style="background:linear-gradient(to right,#ffcc00,#ff4400)"></div>
+        <span>Very high / Extreme</span>
+      </div>
+
+      <div style="margin-top:13px">
+        <div class="sec-title" style="margin-bottom:7px">Route Risk Colors</div>
+        <div class="legend-row"><div class="leg-color" style="background:#00c853"></div><span>Safe (0–20%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#ffd700"></div><span>Low risk (20–40%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#ff8c00"></div><span>Medium risk (40–60%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#ff4444"></div><span>High risk (60–80%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#cc0000"></div><span>Extreme risk (80–100%)</span></div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ Data fetched live from Pikud HaOref (IDF Home Front Command). For educational and planning purposes only — does not replace real-time emergency instructions. Always follow official alerts.
+    </div>
+
+  </div><!-- /sidebar -->
+
+  <!-- MAP -->
+  <div class="map-wrap">
+    <div id="map"></div>
+    <div id="loading">
+      <div class="spinner"></div>
+      <div style="font-size:13px">Calculating route…</div>
+    </div>
+    <div class="map-hint">
+      💡 Type locations above, or click the map to set waypoints
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<div id="search-dropdown"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+//  HEBREW CITY NAME → [lat, lng] LOOKUP
+//  Covers cities, kibbutzim & common alert area names
+// ═══════════════════════════════════════════════════════
+const CITY_MAP = {
+  // ── Gaza Envelope (Otef Aza) ──
+  'שדרות': [31.524, 34.597],
+  'כפר עזה': [31.502, 34.618],
+  'נחל עוז': [31.513, 34.596],
+  'ניר עם': [31.555, 34.542],
+  'ארז': [31.597, 34.527],
+  'יד מרדכי': [31.590, 34.544],
+  'כפר מימון': [31.612, 34.517],
+  'בארי': [31.449, 34.514],
+  'רעים': [31.428, 34.531],
+  'ניר עוז': [31.401, 34.469],
+  'עלומים': [31.477, 34.511],
+  'כיסופים': [31.394, 34.488],
+  'ניר יצחק': [31.346, 34.473],
+  'עין השלושה': [31.363, 34.476],
+  'מגן': [31.397, 34.471],
+  'זיקים': [31.712, 34.555],
+  'שובה': [31.457, 34.537],
+  'ישע': [31.444, 34.556],
+  'תקומה': [31.385, 34.533],
+  'אורים': [31.293, 34.516],
+  'גבים': [31.498, 34.567],
+  'רוחמה': [31.545, 34.522],
+  'אשבול': [31.457, 34.486],
+  'ניצן': [31.720, 34.625],
+  'ניצנים': [31.743, 34.616],
+  'נבטים': [31.218, 34.884],
+  'בית קמה': [31.326, 34.724],
+  'דביר': [31.378, 34.785],
+  'ברוש': [31.328, 34.587],
+  'פטיש': [31.362, 34.548],
+  'שיבולים': [31.364, 34.570],
+  'גילת': [31.335, 34.654],
+  'תלמי יוסף': [31.274, 34.550],
+  'עמיקם': [31.510, 34.490],
+  'אנות': [31.410, 34.580],
+  'סעד': [31.467, 34.476],
+  'חולית': [31.329, 34.538],
+  'מיפלסים': [31.481, 34.539],
+  'כרמייה': [31.614, 34.570],
+  'הלוחמות': [31.461, 34.554],
+  'תלמי אלעזר': [31.441, 34.499],
+  'בני נצרים': [31.393, 34.528],
+  'נתיבות': [31.423, 34.592],
+  'אופקים': [31.321, 34.621],
+  'גן יבנה': [31.789, 34.701],
+  'קריית גת': [31.610, 34.768],
+  'קרית גת': [31.610, 34.768],
+  'לכיש': [31.560, 34.720],
+  'יבנה': [31.868, 34.673],
+  'גדרה': [31.812, 34.778],
+  // ── Southern coast ──
+  'אשקלון': [31.668, 34.573],
+  'אשדוד': [31.804, 34.648],
+  // ── Beer Sheva & Negev ──
+  'באר שבע': [31.252, 34.791],
+  'דימונה': [31.068, 35.033],
+  'ערד': [31.258, 35.213],
+  'מצפה רמון': [30.609, 34.801],
+  'אילת': [29.558, 34.952],
+  'כסיפה': [31.207, 34.875],
+  'שגב שלום': [31.177, 34.884],
+  'שגב-שלום': [31.177, 34.884],
+  'ירוחם': [30.987, 34.924],
+  'עומר': [31.251, 34.852],
+  'מיתר': [31.185, 35.009],
+  'להבים': [31.367, 34.817],
+  'תפרח': [31.365, 34.731],
+  'משמר הנגב': [31.258, 34.702],
+  'תל שבע': [31.245, 34.990],
+  'רהט': [31.390, 34.754],
+  'לקיה': [31.368, 34.765],
+  // ── Tel Aviv Metro ──
+  'תל אביב': [32.085, 34.781],
+  'תל-אביב': [32.085, 34.781],
+  'יפו': [32.055, 34.752],
+  'ראשון לציון': [31.975, 34.789],
+  'רחובות': [31.896, 34.810],
+  'נס ציונה': [31.950, 34.808],
+  'בת ים': [32.023, 34.751],
+  'חולון': [32.011, 34.773],
+  'בני ברק': [32.084, 34.833],
+  'פתח תקווה': [32.087, 34.887],
+  'רמת גן': [32.082, 34.810],
+  'גבעתיים': [32.071, 34.806],
+  'הרצליה': [32.165, 34.843],
+  'רעננה': [32.184, 34.874],
+  'כפר סבא': [32.178, 34.908],
+  'הוד השרון': [32.148, 34.899],
+  'נתניה': [32.328, 34.858],
+  'חדרה': [32.435, 34.919],
+  'לוד': [31.952, 34.896],
+  'רמלה': [31.929, 34.868],
+  'ראש העין': [32.097, 34.958],
+  'אור יהודה': [32.032, 34.857],
+  'קריית אונו': [32.055, 34.856],
+  'קרית אונו': [32.055, 34.856],
+  'גבעת שמואל': [32.078, 34.846],
+  'יהוד': [32.030, 34.888],
+  'אלעד': [32.052, 34.951],
+  'מזכרת בתיה': [31.855, 34.843],
+  'אבן יהודה': [32.271, 34.895],
+  'תל מונד': [32.257, 34.919],
+  'כוכב יאיר': [32.205, 34.981],
+  'עמנואל': [32.151, 35.087],
+  'קלנסווה': [32.282, 34.978],
+  'טייבה': [32.224, 35.002],
+  'טירה': [32.234, 34.951],
+  'קסמים': [32.183, 34.988],
+  'פרדס חנה-כרכור': [32.471, 34.970],
+  'פרדס חנה': [32.471, 34.970],
+  'גן שמואל': [32.463, 34.954],
+  'זכרון יעקב': [32.568, 34.953],
+  'בנימינה': [32.524, 34.944],
+  'עתלית': [32.694, 34.940],
+  'טירת כרמל': [32.762, 34.968],
+  // ── Jerusalem area ──
+  'ירושלים': [31.771, 35.234],
+  'בית שמש': [31.749, 34.988],
+  'מודיעין': [31.906, 35.014],
+  'מודיעין-מכבים-רעות': [31.906, 35.014],
+  'מבשרת ציון': [31.803, 35.157],
+  'מעלה אדומים': [31.778, 35.305],
+  'אלפי מנשה': [32.160, 35.039],
+  'אריאל': [32.104, 35.168],
+  // ── Haifa ──
+  'חיפה': [32.819, 35.003],
+  'נשר': [32.777, 35.031],
+  'קריית מוצקין': [32.836, 35.073],
+  'קרית מוצקין': [32.836, 35.073],
+  'קריית אתא': [32.807, 35.112],
+  'קרית אתא': [32.807, 35.112],
+  'קריית ביאליק': [32.839, 35.074],
+  'קרית ביאליק': [32.839, 35.074],
+  'קריית ים': [32.855, 35.068],
+  'קרית ים': [32.855, 35.068],
+  // ── Valleys / Lower Galilee ──
+  'עפולה': [32.606, 35.291],
+  'מגדל העמק': [32.674, 35.237],
+  'נצרת': [32.700, 35.296],
+  'נצרת עילית': [32.704, 35.334],
+  'שפרעם': [32.806, 35.168],
+  'יוקנעם עלית': [32.658, 35.116],
+  'יקנעם עלית': [32.658, 35.116],
+  'בית שאן': [32.498, 35.500],
+  'נהלל': [32.681, 35.200],
+  'כפר תבור': [32.688, 35.420],
+  'מגידו': [32.585, 35.181],
+  'אום אל-פחם': [32.523, 35.152],
+  'בית אלפא': [32.518, 35.432],
+  // ── Northern Galilee ──
+  'כרמיאל': [32.910, 35.295],
+  'מעלות-תרשיחא': [32.997, 35.273],
+  'מעלות': [32.997, 35.273],
+  'תרשיחא': [32.997, 35.273],
+  'עכו': [32.927, 35.075],
+  'נהריה': [32.989, 35.098],
+  'צפת': [32.965, 35.498],
+  'ראש פינה': [32.966, 35.536],
+  'ביריה': [32.979, 35.497],
+  'פקיעין': [32.979, 35.320],
+  'סאסא': [33.034, 35.385],
+  'גוש חלב': [33.024, 35.422],
+  'אבן מנחם': [33.015, 35.225],
+  'כברי': [33.003, 35.125],
+  'לוחמי הגטאות': [32.966, 35.110],
+  "ג'ש": [32.988, 35.494],
+  'חנניה': [33.009, 35.398],
+  'אבירים': [33.033, 35.244],
+  'חירם': [33.015, 35.313],
+  'פסוטה': [33.028, 35.277],
+  'יסוד המעלה': [33.025, 35.590],
+  'חצור הגלילית': [33.026, 35.567],
+  'מלכיה': [33.082, 35.466],
+  'ריחנייה': [33.072, 35.502],
+  'פרוד': [32.897, 35.425],
+  'מגדל': [32.838, 35.508],
+  'טבריה': [32.794, 35.531],
+  'דבורייה': [32.680, 35.391],
+  'תמרת': [32.774, 35.284],
+  'עיבלין': [32.816, 35.147],
+  "ג'דיידה-מכר": [32.929, 35.127],
+  'בענה': [32.953, 35.236],
+  'דיר אל-אסד': [32.955, 35.183],
+  'כפר חנניה': [32.926, 35.410],
+  'מצפה נטופה': [32.832, 35.372],
+  'יחיעם': [33.036, 35.136],
+  'מצובה': [33.079, 35.193],
+  'זרעית': [33.106, 35.128],
+  'שלומי': [33.068, 35.149],
+  // ── Upper Galilee / Kiryat Shmona ──
+  'קריית שמונה': [33.208, 35.572],
+  'קרית שמונה': [33.208, 35.572],
+  'מטולה': [33.278, 35.576],
+  'כפר גלעדי': [33.213, 35.562],
+  'תל חי': [33.226, 35.567],
+  'מנרה': [33.265, 35.562],
+  'מנארה': [33.265, 35.562],
+  'מרגליות': [33.175, 35.583],
+  'יראון': [33.115, 35.491],
+  'ברעם': [33.099, 35.459],
+  'שאר ישוב': [33.251, 35.589],
+  'דן': [33.247, 35.652],
+  'שניר': [33.244, 35.638],
+  'גדות': [33.225, 35.619],
+  'אביבים': [33.151, 35.531],
+  'ראש הנקרה': [33.095, 35.096],
+  'הגושרים': [33.233, 35.627],
+  'יפתח': [33.137, 35.559],
+  'מחנה יפתח': [33.137, 35.559],
+  'דפנה': [33.233, 35.650],
+  'גונן': [33.122, 35.614],
+  'לפידות': [32.987, 35.543],
+  'מעיין ברוך': [33.248, 35.640],
+  'אל רום': [33.126, 35.776],
+  'דובב': [32.978, 35.554],
+  'כפר בלום': [33.165, 35.610],
+  'אפיק': [32.880, 35.655],
+  // ── Golan Heights ──
+  'קצרין': [32.994, 35.694],
+  'נוב': [32.960, 35.715],
+  'אלי עד': [32.978, 35.742],
+  'קשת': [33.069, 35.774],
+  'אודם': [33.141, 35.798],
+  'מסעדה': [33.223, 35.746],
+  'נמרוד': [33.243, 35.721],
+  'נווה אטיב': [33.188, 35.734],
+  'עין זיוון': [33.095, 35.786],
+  // ── Neighborhood / area variants that appear in alerts ──
+  'תל אביב - מרכז העיר': [32.085, 34.781],
+  'תל אביב - דרום': [32.055, 34.760],
+  'תל אביב - צפון': [32.105, 34.782],
+  'תל אביב - מזרח': [32.085, 34.810],
+  'אשקלון - ברנע': [31.675, 34.575],
+  'אשקלון - צפון': [31.695, 34.553],
+  'אשקלון - דרום': [31.645, 34.585],
+  'אשקלון - מרכז': [31.668, 34.573],
+  'חיפה - כרמל': [32.790, 35.010],
+  'חיפה - מרכז': [32.819, 35.003],
+  'אשדוד - כל האזורים': [31.804, 34.648],
+  'אשדוד - צפון': [31.820, 34.638],
+  'אשדוד - דרום': [31.790, 34.659],
+  'ירושלים - מערב': [31.771, 35.200],
+  'ירושלים - מרכז': [31.771, 35.234],
+  'ירושלים - צפון': [31.800, 35.220],
+  'באר שבע - מרכז': [31.252, 34.791],
+  'באר שבע - צפון': [31.275, 34.780],
+  'ראשון לציון - מרכז': [31.975, 34.789],
+  'ראשון לציון - דרום': [31.958, 34.789],
+  'חדרה - מרכז': [32.435, 34.919],
+  'נתניה - מרכז': [32.328, 34.858],
+  'קריית שמונה - מרכז': [33.208, 35.572],
+  'עוטף עזה': [31.470, 34.520],
+  // ── Golan Heights (additional) ──
+  'רמת טראמפ': [33.018, 35.842],
+  'קלע אלון': [33.050, 35.780],
+  'מרום גולן': [33.078, 35.768],
+  'קדמת צבי': [33.013, 35.791],
+  'אורטל': [33.133, 35.822],
+  'אלוני הבשן': [33.072, 35.851],
+  'שעל': [33.040, 35.815],
+  'יונתן': [33.062, 35.838],
+  'אבני איתן': [33.027, 35.772],
+  'בוקעתא': [33.255, 35.783],
+  'מגדל שמס': [33.268, 35.775],
+  'מג\'דל שמס': [33.268, 35.775],
+  'רמות': [33.060, 35.777],
+  'נאות גולן': [32.980, 35.756],
+  'חד נס': [32.852, 35.625],
+  'מעלה גמלא': [32.885, 35.733],
+  'גשור': [32.900, 35.668],
+  'חמת גדר': [32.700, 35.660],
+  'אניעם': [33.100, 35.793],
+  'רמת מגשימים': [32.921, 35.720],
+  'כנף': [33.053, 35.640],
+  'חוסנייה': [33.010, 35.678],
+  'ע\'ג\'ר': [33.270, 35.626],
+  'מסדה': [32.882, 35.636],
+  'חספין': [33.003, 35.699],
+  'מרכז אזורי רמת כורזים': [32.885, 35.614],
+  // ── Upper Galilee (additional) ──
+  'אלמגור': [32.946, 35.627],
+  'אמנון': [32.910, 35.574],
+  'אמירים': [32.942, 35.435],
+  'בית הלל': [33.196, 35.616],
+  'דישון': [33.080, 35.513],
+  'גינוסר': [32.841, 35.514],
+  'הר חלוץ': [32.943, 35.310],
+  'כפר סאלד': [33.189, 35.585],
+  'כפר יובל': [33.172, 35.587],
+  'מחניים': [33.058, 35.552],
+  'מסד': [32.932, 35.545],
+  'מירון': [32.985, 35.431],
+  'נטועה': [33.026, 35.232],
+  'עמיעד': [32.965, 35.617],
+  'עמיר': [33.179, 35.615],
+  'שמיר': [33.215, 35.578],
+  'קדיתא': [33.100, 35.503],
+  'אחוזת ברק': [32.730, 35.597],
+  'קיבוץ דן': [33.247, 35.652],
+  'לב החולה': [33.090, 35.586],
+  'מרכז אזורי מבואות חרמון': [33.240, 35.590],
+  'מרכז אזורי מרום גליל': [33.100, 35.488],
+  'איילת השחר': [33.027, 35.573],
+  'מנחת מחניים': [33.041, 35.546],
+  'כורזים ורד הגליל': [32.883, 35.608],
+  'שער הגולן': [32.704, 35.580],
+  'עין גב': [32.784, 35.637],
+  'בית זרע': [32.716, 35.579],
+  'כינרת מושבה': [32.720, 35.577],
+  'כינרת קבוצה': [32.712, 35.570],
+  'לבנים': [33.012, 35.233],
+  'גשר הזיו': [33.014, 35.130],
+  'אדמית': [33.063, 35.171],
+  'בצת': [33.050, 35.173],
+  'לימן': [33.074, 35.165],
+  'סער': [33.009, 35.143],
+  'נווה זיו': [33.035, 35.153],
+  'שתולה': [33.100, 35.241],
+  'עלמה': [33.079, 35.351],
+  'ריחאנייה': [33.072, 35.502],
+  'צוריאל': [32.992, 35.302],
+  'כישור': [33.016, 35.304],
+  'מורשת': [32.940, 35.302],
+  'מנוף': [32.921, 35.299],
+  'שורשים': [32.919, 35.283],
+  'צבעון': [32.961, 35.286],
+  'מנות': [33.014, 35.284],
+  'לבון': [32.934, 35.345],
+  'בית אורן': [32.747, 35.052],
+  'חזון': [32.949, 35.384],
+  'טובא זנגריה': [33.036, 35.558],
+  'מרכז אזורי משגב': [32.887, 35.289],
+  'יסעור': [32.878, 35.213],
+  'קדרים': [32.897, 35.305],
+  'שכניה': [32.892, 35.244],
+  'מורן': [32.906, 35.329],
+  'עמוקה': [33.006, 35.418],
+  'חרשים': [32.892, 35.322],
+  'מצפה אבי\'\'ב': [32.960, 35.329],
+  'עמקה': [32.940, 35.200],
+  'מגר': [32.893, 35.394],
+  'לוטם וחמדון': [32.938, 35.270],
+  'שזור': [32.856, 35.302],
+  'כמון - כמאנה מזרחית': [32.979, 35.364],
+  'מכמנים - כמאנה מערבית': [32.965, 35.323],
+  'יודפת': [32.834, 35.271],
+  'ינוח ג\'ת': [33.023, 35.257],
+  'בית ג\'אן': [32.960, 35.400],
+  'אור הגנוז': [32.960, 35.418],
+  'כסרא סמיע': [32.976, 35.370],
+  'חורפיש': [33.006, 35.323],
+  'כאוכב אבו אלהיג\'א': [32.947, 35.386],
+  'כפר שמאי': [32.981, 35.427],
+  'ריינה': [32.712, 35.315],
+  'נחף': [32.938, 35.261],
+  'ראמה': [32.941, 35.364],
+  'דיר חנא': [32.863, 35.365],
+  'סאג\'ור': [32.929, 35.299],
+  'ג\'וליס': [32.929, 35.180],
+  'עראבה': [32.852, 35.340],
+  'עילבון': [32.816, 35.147],
+  'עילוט': [32.719, 35.282],
+  'מג\'דל כרום': [32.967, 35.268],
+  'ביר אלמכסור': [32.820, 35.290],
+  'בועיינה-נוג\'ידאת': [32.806, 35.378],
+  'מע\'אר': [32.893, 35.393],
+  'כאבול': [32.891, 35.155],
+  'טורעאן': [32.771, 35.335],
+  'משהד': [32.727, 35.318],
+  'כפר כנא': [32.744, 35.349],
+  'כפר מנדא': [32.790, 35.240],
+  'שפר': [32.940, 35.245],
+  // ── Lower Galilee / Jezreel Valley (additional) ──
+  'אבטליון': [32.820, 35.340],
+  'אושה': [32.778, 35.155],
+  'איבטין': [32.773, 35.112],
+  'אכסאל': [32.690, 35.320],
+  'אלומות': [32.816, 35.488],
+  'אלוני אבא': [32.676, 35.197],
+  'אלונים': [32.753, 35.201],
+  'בסמת טבעון': [32.718, 35.159],
+  'גבע': [32.677, 35.354],
+  'גבת': [32.666, 35.258],
+  'גדעונה': [32.545, 35.328],
+  'גניגר': [32.618, 35.231],
+  'גן נר': [32.556, 35.350],
+  'דברת': [32.671, 35.392],
+  'דגניה א': [32.715, 35.577],
+  'דגניה ב': [32.704, 35.567],
+  'זרזיר': [32.737, 35.249],
+  'הושעיה': [32.742, 35.256],
+  'הסוללים': [32.698, 35.255],
+  'היוגב': [32.615, 35.227],
+  'יבנאל': [32.708, 35.487],
+  'יגור': [32.752, 35.104],
+  'יזרעאל': [32.564, 35.296],
+  'יפעת': [32.716, 35.224],
+  'כדורי': [32.714, 35.421],
+  'כפר ברוך': [32.634, 35.255],
+  'כפר גדעון': [32.573, 35.242],
+  'כפר המכבי': [32.814, 35.125],
+  'כפר יהושע': [32.638, 35.174],
+  'כפר יחזקאל': [32.539, 35.355],
+  'כפר מצר': [32.592, 35.319],
+  'כפר תקווה': [32.648, 35.202],
+  'מוקיבלה': [32.548, 35.203],
+  'מזרע': [32.610, 35.223],
+  'מרחביה מושב': [32.590, 35.297],
+  'מרחביה קיבוץ': [32.603, 35.272],
+  'נורית': [32.587, 35.385],
+  'סולם': [32.548, 35.210],
+  'סנדלה': [32.531, 35.332],
+  'עדי': [32.756, 35.173],
+  'עין דור': [32.588, 35.387],
+  'עין חרוד, תל יוסף': [32.535, 35.385],
+  'שדמות דבורה': [32.617, 35.276],
+  'שריד': [32.614, 35.205],
+  'תל עדשים': [32.647, 35.322],
+  'אפק': [32.856, 35.131],
+  'בלפוריה': [32.602, 35.299],
+  'חג\'אג\'רה': [32.620, 35.285],
+  'יפיע': [32.699, 35.298],
+  'כעביה טבאש': [32.741, 35.249],
+  'כפר כמא': [32.718, 35.425],
+  'מזרעה': [32.618, 35.259],
+  'נאעורה': [32.564, 35.239],
+  'שיבלי אום אלג\'נם': [32.573, 35.394],
+  'טמרה בגלבוע': [32.529, 35.234],
+  'עין מאהל': [32.714, 35.329],
+  'דחי': [32.540, 35.287],
+  'קבוצת גבע': [32.677, 35.354],
+  'דבוריה': [32.680, 35.391],
+  'רם און': [32.555, 35.375],
+  'בית לחם הגלילית': [32.696, 35.268],
+  'לביא': [32.805, 35.393],
+  'שדה אלעזר': [33.145, 35.573],
+  'ואדי אל חמאם': [32.827, 35.503],
+  'נבי שועייב': [32.832, 35.476],
+  'גזית': [32.617, 35.381],
+  // ── Carmel / Haifa environs (additional) ──
+  'כפר ביאליק': [32.874, 35.106],
+  'כפר מסריק': [32.924, 35.084],
+  'בוסתן הגליל': [32.885, 35.073],
+  'רכסים': [32.781, 35.093],
+  'קריית טבעון - בית זייד': [32.722, 35.129],
+  'דלית אל כרמל': [32.699, 35.039],
+  'עין הוד': [32.706, 34.985],
+  'עין חוד': [32.706, 34.985],
+  'עין כרמל': [32.676, 34.969],
+  'גבע כרמל': [32.681, 34.973],
+  'מגדים': [32.773, 34.931],
+  'ניר עציון, ימין אורד': [32.615, 34.965],
+  'כפר גלים': [32.788, 34.947],
+  'הבונים': [32.658, 34.938],
+  'נווה ים': [32.655, 34.943],
+  'נחשולים': [32.647, 34.937],
+  'דור, נחשולים': [32.615, 34.920],
+  'כפר ח\'וואלד': [32.786, 35.097],
+  'כרם מהר\'\'ל': [32.730, 35.043],
+  'כרם בן זמרה': [33.010, 35.208],
+  'כפר החורש': [32.713, 35.210],
+  'אורנים': [32.762, 35.082],
+  'בת שלמה': [32.590, 34.975],
+  'פוריידיס': [32.606, 34.943],
+  'בן עמי': [33.009, 35.088],
+  'גורן': [33.037, 35.197],
+  'רגבה': [33.000, 35.094],
+  'כלנית': [32.926, 35.212],
+  'עבדון': [33.026, 35.191],
+  'מאיר שפיה': [32.558, 34.974],
+  'גורנות הגליל': [33.023, 35.136],
+  'צרופה': [32.741, 35.037],
+  'הררית יחד': [32.963, 35.162],
+  'ספסופה - כפר חושן': [33.020, 35.395],
+  'עצמון - שגב': [32.941, 35.278],
+  'מרכז חבר': [32.896, 35.234],
+  'מרכז מיר\'\'ב': [32.855, 35.228],
+  'כפר ח\'וואלד': [32.786, 35.097],
+  'נופית': [32.936, 35.197],
+  'שייח\' דנון': [32.963, 35.144],
+  'ערב אל עראמשה': [33.056, 35.160],
+  'ערב אל נעים': [32.735, 35.200],
+  'אבו סנאן': [32.964, 35.162],
+  'ירכא': [32.964, 35.178],
+  'מנשית זבדה': [32.948, 35.154],
+  // ── Kinneret / Jordan Valley area ──
+  'אשדות יעקב': [32.680, 35.565],
+  'עין אל אסד': [32.838, 35.499],
+  'האון': [32.726, 35.630],
+  'מעגן': [32.749, 35.614],
+  'טל - אל': [32.754, 35.594],
+  'צמח': [32.715, 35.589],
+  'כפר חרוב': [32.842, 35.667],
+  'חוף אכזיב': [33.052, 35.099],
+  'חוף בצת': [33.060, 35.168],
+  'מנחת מחניים': [33.041, 35.546],
+  'עין קנייא': [33.248, 35.770],
+  'מבוא חמה': [32.858, 35.721],
+  'רמת צבי': [32.561, 35.354],
+  'אפיק': [32.880, 35.655],
+  // ── Jezreel / Harod area ──
+  'גן שמואל': [32.463, 34.954],
+  'בית ספר שדה מירון': [32.968, 35.515],
+  'כפר זיתים': [32.820, 35.502],
+  'אשחר': [32.931, 35.346],
+  'מצפה': [32.865, 35.380],
+  'שדה אילן': [32.698, 35.424],
+  'שדה אליעזר': [33.145, 35.573],
+  'שדה נחמיה': [33.205, 35.598],
+  'שדה יעקב': [32.641, 35.178],
+  'שבי ציון': [32.982, 35.085],
+  'שחר': [32.906, 35.404],
+  'יובלים': [32.967, 35.238],
+  'אליפלט': [33.105, 35.561],
+  'נס עמים': [32.968, 35.115],
+  'כפר נהר הירדן': [32.875, 35.638],
+  'מנחת מחניים': [33.041, 35.546],
+  'הדשים': [32.712, 35.201],
+  'חנתון': [32.801, 35.235],
+  'מזרע': [32.610, 35.223],
+  'גשר': [32.653, 35.548],
+  'אשבל': [32.931, 35.351],
+  'הר חלוץ': [32.943, 35.310],
+  'נטור': [32.698, 35.627],
+  'עופר': [32.836, 35.111],
+  'מעונה': [33.024, 35.271],
+  'מעיליא': [33.031, 35.263],
+  'אלקוש': [33.038, 35.237],
+  'כפר יאסיף': [32.953, 35.143],
+  // ── Golan / Bashan smaller settlements ──
+  'נאות מרדכי': [33.174, 35.608],
+  'חולתה': [33.147, 35.601],
+  'לפידות': [32.987, 35.543],
+  'גדות': [33.225, 35.619],
+  'נווה אטי\'\'ב': [33.188, 35.734],
+  'מרגליות': [33.175, 35.583],
+  'יראון': [33.115, 35.491],
+  'גונן': [33.122, 35.614],
+  'אביבים': [33.151, 35.531],
+  'מעיין ברוך': [33.248, 35.640],
+  'דפנה': [33.233, 35.650],
+  'שניר': [33.244, 35.638],
+  'מנארה': [33.265, 35.562],
+  'מטולה': [33.278, 35.576],
+  'שאר ישוב': [33.251, 35.589],
+  'יפתח': [33.137, 35.559],
+  'מרגליות': [33.175, 35.583],
+  'אל רום': [33.126, 35.776],
+  'דובב': [32.978, 35.554],
+  'כפר בלום': [33.165, 35.610],
+  // ── Industrial zones (approximate locations) ──
+  'אזור תעשייה אלון התבור': [32.681, 35.414],
+  'אזור תעשייה בר-לב': [32.897, 35.262],
+  'אזור תעשייה מבואות הגלבוע': [32.497, 35.352],
+  'אזור תעשייה ניר עציון': [32.615, 34.967],
+  'אזור תעשייה צ.ח.ר': [32.823, 35.498],
+  'אזור תעשייה קדמת גליל': [32.942, 35.265],
+  'אזור תעשייה רמת דלתון': [33.067, 35.513],
+  'אזור תעשייה שער נעמן': [32.960, 35.085],
+  'אזור תעשייה תרדיון': [32.872, 35.290],
+  'איזור תעשייה מילואות צפון': [32.985, 35.087],
+  // ── Special sites / kibbutz areas ──
+  'אתר ההנצחה גולני': [32.697, 35.448],
+  'בית סוהר צלמון': [32.873, 35.367],
+  'בית סוהר קישון': [32.725, 35.184],
+  'בית עלמין תל רגב': [32.727, 35.188],
+  'תחנת רכבת כפר ברוך': [32.634, 35.255],
+  'תחנת רכבת כפר יהושוע': [32.638, 35.174],
+  'מרכז אזורי מבואות חרמון': [33.240, 35.590],
+  'מתחם סקי גלבוע': [32.493, 35.412],
+  'ישובי אומן': [32.919, 35.330],
+  'ישובי יעל': [32.640, 35.180],
+  'חמדת ימים': [32.825, 35.390],
+  'מצפה נטופה': [32.832, 35.372],
+  'מצפה אבי\'\'ב': [32.960, 35.329],
+  'רמת יוחנן': [32.820, 35.116],
+  'מרכז חבר': [32.896, 35.234],
+  'מצובה': [33.079, 35.193],
+  'זרעית': [33.106, 35.128],
+  'שלומי': [33.068, 35.149],
+  'להבות הבשן': [33.157, 35.580],
+  'אחיהוד': [32.913, 35.131],
+  'פלך': [33.044, 35.374],
+  'בר יוחאי': [32.991, 35.465],
+  'כרכום': [32.979, 35.450],
+  'עמוקה': [33.006, 35.418],
+  'אמנון': [32.910, 35.574],
+  'תובל': [32.939, 35.241],
+  'גוש חלב': [33.024, 35.422],
+  'ביריה': [32.979, 35.497],
+  'לוחמי הגטאות': [32.966, 35.110],
+  'חניתה': [33.065, 35.169],
+  'בית צבי': [32.610, 34.965],
+  'בית רימון': [32.862, 35.328],
+  'בית שערים': [32.701, 35.117],
+  'ניר עציון': [32.615, 34.965],
+  'מגידו': [32.585, 35.181],
+  'טל - אל': [32.754, 35.594],
+  'חד נס': [32.852, 35.625],
+  'טפחות': [32.722, 35.137],
+  'אורנים': [32.762, 35.082],
+  'ראס אל-עין': [32.852, 35.125],
+  'ראס עלי': [32.716, 35.294],
+  'נין': [32.590, 35.241],
+  'סואעד חמירה': [32.739, 35.256],
+  'אעבלין': [32.808, 35.183],
+  'סכנין': [32.867, 35.303],
+  'איילת השחר': [33.027, 35.573],
+  'רמת ישי': [32.704, 35.167],
+  'שרונה': [32.623, 35.306],
+  'כפר חסידים': [32.806, 35.101],
+  'כפר חיטים': [32.830, 35.475],
+  'כפר ח\'וואלד': [32.786, 35.097],
+  'הרדוף': [32.775, 35.190],
+  'גבעת אלה': [32.764, 35.165],
+  'גבעת אבני': [32.767, 35.238],
+  'גבעת וולפסון': [32.713, 35.203],
+  'רומת אל הייב': [32.872, 35.396],
+  'מעלה צביה': [32.836, 35.303],
+  'פוריה כפר עבודה': [32.773, 35.544],
+  'פוריה נווה עובד': [32.767, 35.549],
+  'פוריה עילית': [32.759, 35.558],
+  'עספיא': [32.723, 35.052],
+  'כיסרא': [32.893, 35.113],
+  'ג\'דידה מכר': [32.929, 35.127],
+  'מגאר': [32.893, 35.394],
+  'רקפת': [32.974, 35.293],
+  'נבטים': [31.218, 34.884],
+  'ב\'ר לב': [32.897, 35.262],
+  'כפר קיש': [32.740, 35.440],
+  'עין אל-אסד': [32.838, 35.499],
+  'כפר זיתים': [32.820, 35.502],
+  'כפר חנניה': [32.926, 35.410],
+  'חנניה': [33.009, 35.398],
+  'ליחי': [32.969, 35.135],
+  'כפר ורדים': [33.010, 35.213],
+  'מתת': [33.052, 35.226],
+  'יעד': [33.000, 35.268],
+  'יערה': [33.062, 35.191],
+  'יעקביה': [32.693, 35.370],
+  'מגדים': [32.773, 34.931],
+  'צורית גילון': [32.875, 35.080],
+  'כפר הנשיא': [33.069, 35.614],
+  'משמר הירדן': [33.058, 35.583],
+  'בית העמק': [33.008, 35.153],
+  'נתיב השיירה': [33.031, 35.130],
+  'עין המפרץ': [32.950, 35.073],
+  'שמרת': [32.996, 35.099],
+  'שער העמקים': [32.757, 35.097],
+  'רמת דוד': [32.622, 35.227],
+  'עין איילה': [32.651, 34.976],
+  'הודיות': [32.754, 35.493],
+  'דוב\'\'ב': [32.978, 35.554],
+  'אשרת': [32.924, 35.074],
+  'קורנית': [32.921, 35.261],
+  'שמשית': [32.716, 35.258],
+  'צוריאל': [32.992, 35.302],
+  'אורים': [31.293, 34.516],
+  'ב\'ר לב': [32.897, 35.262],
+  'כפר ח\'וואלד': [32.786, 35.097],
+  'אפיק': [32.880, 35.655],
+  'רביד': [32.834, 35.427],
+  'חמדת ימים': [32.825, 35.390],
+  'אשבל': [32.931, 35.351],
+  'גיתה': [33.062, 35.213],
+  'מיצר': [32.650, 35.235],
+  'בוסתן הגליל': [32.885, 35.073],
+  'סלמה': [33.028, 35.359],
+  'בת שלמה': [32.590, 34.975],
+  'אבטליון': [32.820, 35.340],
+};
+
+// ═══════════════════════════════════════════════
+//  CITY LABELS ON MAP
+// ═══════════════════════════════════════════════
+const CITIES = [
+  { n:'Tel Aviv',      lat:32.085, lng:34.781 },
+  { n:'Jerusalem',     lat:31.771, lng:35.234 },
+  { n:'Haifa',         lat:32.819, lng:35.003 },
+  { n:'Beer Sheva',    lat:31.252, lng:34.791 },
+  { n:'Ashdod',        lat:31.804, lng:34.648 },
+  { n:'Ashkelon',      lat:31.668, lng:34.573 },
+  { n:'Sderot',        lat:31.524, lng:34.597 },
+  { n:'Netanya',       lat:32.328, lng:34.858 },
+  { n:'Kiryat Shmona', lat:33.208, lng:35.572 },
+  { n:'Nahariya',      lat:32.989, lng:35.098 },
+  { n:'Tiberias',      lat:32.794, lng:35.531 },
+  { n:'Eilat',         lat:29.558, lng:34.952 },
+  { n:'Rishon LeZion', lat:31.975, lng:34.789 },
+  { n:'Safed',         lat:32.965, lng:35.498 },
+  { n:'Netivot',       lat:31.423, lng:34.592 },
+];
+
+// ═══════════════════════════════════════════════
+//  GLOBALS
+// ═══════════════════════════════════════════════
+let map, heatLayer, citiesLayer, routeGroup, hitMarkersLayer;
+let markerOrigin = null, markerDest = null;
+let latlngOrigin = null, latlngDest = null;
+let searchTimers = {};
+
+// Live alarm data used for heatmap & risk calculation
+let liveAlarms = []; // [[lat, lng, weight], ...]
+let RISK_NORM   = 1; // set dynamically after data loads
+let HIT_NORM    = 1; // max raw hit score at any hit epicentre
+
+// ═══════════════════════════════════════════════
+//  THREAT SOURCE INFERENCE
+//  Category 13/14 = ballistic (Iran / Houthi)  → 3.0×
+//  Category  1 + north target (lat ≥ 32.5)     → Hezbollah 1.8×
+//  Category  1 + mid  target  (lat ≥ 31.8)     → Hezbollah/mixed 1.3×
+//  Category  1 + south target (lat < 31.8)     → Hamas 1.0×
+// ═══════════════════════════════════════════════
+const SOURCE_META = {
+  iran:      { label: 'Iran / Houthi (ballistic)', color: '#ff2222', emoji: '🚀', weight: 3.0 },
+  hezbollah: { label: 'Lebanon / Hezbollah',       color: '#ff8800', emoji: '🎯', weight: 1.8 },
+  hamas:     { label: 'Gaza / Hamas',              color: '#ffdd00', emoji: '💥', weight: 1.0 },
+};
+
+function inferSource(cat, coords) {
+  if (cat === 13 || cat === 14) return 'iran';
+  if (cat === 1) {
+    if (!coords) return 'hamas';
+    const lat = coords[0];
+    if (lat >= 32.5) return 'hezbollah'; // Upper + Mid Galilee
+    if (lat >= 31.8) return 'hezbollah'; // Central corridor – still Hezbollah range
+    return 'hamas';
+  }
+  return 'hamas'; // fallback
+}
+
+function sourceWeight(cat, coords) {
+  const src = inferSource(cat, coords);
+  return SOURCE_META[src]?.weight ?? 1.0;
+}
+
+// ═══════════════════════════════════════════════
+//  CONFIRMED HIT EVENTS (2024–2026)
+//  Curated from public reporting (IDF, news, government statements)
+//  Format: [lat, lng, severityWeight, source, description]
+//    severityWeight: 1.0 (minor) → 3.5 (mass-casualty / heavy damage)
+// ═══════════════════════════════════════════════
+const HIT_EVENTS = [
+  // ── Iran / Houthi ballistic missile strikes ─────────────────────────────
+  // April 14 2024 – Iran's first direct attack on Israel (~300 drones + missiles)
+  [31.21, 35.01, 2.5, 'iran', 'Nevatim area – Apr 2024 (base hit)'],
+  [31.26, 35.21, 1.5, 'iran', 'Arad area – Apr 2024 (child injured)'],
+  // October 1-2 2024 – Iran's second attack (~180 ballistic missiles)
+  [32.00, 34.78, 3.0, 'iran', 'Gush Dan / Holon – Oct 2024'],
+  [32.02, 34.75, 2.0, 'iran', 'Bat Yam area – Oct 2024'],
+  [32.05, 34.75, 2.5, 'iran', 'Jaffa / S. Tel Aviv – Oct 2024'],
+  [32.08, 34.79, 2.0, 'iran', 'Tel Aviv area – Oct 2024'],
+  [31.77, 35.23, 2.0, 'iran', 'Jerusalem outskirts – Oct 2024'],
+  [32.44, 34.92, 1.5, 'iran', 'Hadera / Sharon – Oct 2024'],
+  [32.50, 35.30, 1.5, 'iran', 'Jezreel Valley – Oct 2024'],
+  // Houthi (Yemen) long-range ballistic & cruise missiles 2024
+  [31.89, 34.81, 1.5, 'iran', 'Yavne area – Houthi strike 2024'],
+  [32.08, 34.78, 2.0, 'iran', 'Tel Aviv – Houthi ballistic 2024'],
+  [32.18, 34.87, 1.5, 'iran', 'Petah Tikva area – Houthi 2024'],
+  // January 2025 – renewed Houthi strikes
+  [32.09, 34.79, 2.0, 'iran', 'Central Israel – Houthi Jan 2025'],
+
+  // ── Lebanon / Hezbollah rocket & drone strikes 2024 ─────────────────────
+  [33.21, 35.57, 3.0, 'hezbollah', 'Kiryat Shmona – heavy damage 2024'],
+  [33.18, 35.55, 2.5, 'hezbollah', 'Kiryat Shmona S – 2024'],
+  [33.10, 35.69, 3.5, 'hezbollah', 'Majdal Shams – drone strike, 12 killed Jul 2024'],
+  [33.01, 35.10, 2.5, 'hezbollah', 'Nahariya – multiple hits 2024'],
+  [32.92, 35.08, 2.0, 'hezbollah', 'Acre – 2024'],
+  [32.97, 35.50, 2.0, 'hezbollah', 'Safed – 2024'],
+  [32.80, 35.10, 2.0, 'hezbollah', 'Haifa NE – 2024'],
+  [32.79, 35.02, 1.5, 'hezbollah', 'Haifa port area – 2024'],
+  [32.80, 35.07, 2.0, 'hezbollah', 'Nesher / Kiryat Ata – 2024'],
+  [32.82, 35.08, 1.5, 'hezbollah', 'Kiryat Bialik – 2024'],
+  [32.79, 35.53, 1.5, 'hezbollah', 'Tiberias area – 2024'],
+  [32.61, 35.29, 1.5, 'hezbollah', 'Afula – 2024'],
+  [33.00, 35.70, 1.5, 'hezbollah', 'Katzrin / Golan Heights – 2024'],
+  [32.91, 35.30, 1.5, 'hezbollah', 'Carmiel area – 2024'],
+  [33.07, 35.18, 1.5, 'hezbollah', "Ma'alot-Tarshiha – 2024"],
+  [32.85, 35.30, 1.5, 'hezbollah', 'Lower Galilee – 2024'],
+
+  // ── Gaza / Hamas rocket hits ─────────────────────────────────────────────
+  [31.52, 34.60, 3.0, 'hamas', 'Sderot – sustained direct hits'],
+  [31.42, 34.59, 2.5, 'hamas', 'Netivot – multiple hits'],
+  [31.67, 34.57, 2.5, 'hamas', 'Ashkelon – multiple hits'],
+  [31.39, 34.51, 2.0, 'hamas', "Be'eri / kibbutz area – hits"],
+  [31.46, 34.55, 2.0, 'hamas', 'Ofakim area – hits'],
+  [31.25, 34.79, 1.5, 'hamas', 'Beersheba – several hits'],
+  [31.67, 34.62, 1.5, 'hamas', 'Ashkelon N coast – hits'],
+  [31.94, 34.75, 1.0, 'hamas', 'Rishon LeZion – occasional hits'],
+  [31.89, 34.81, 1.0, 'hamas', 'Yavne – occasional hits'],
+];
+
+// Raw hit score at a map point (uses tighter 8 km decay — hits are localised)
+function rawHitScore(lat, lng) {
+  let s = 0;
+  for (const [hlat, hlng, hw, hsrc] of HIT_EVENTS) {
+    const d = haversine(lat, lng, hlat, hlng);
+    if (d < 40) s += hw * (SOURCE_META[hsrc]?.weight ?? 1) * Math.exp(-d / 8);
+  }
+  return s;
+}
+
+// Calibrate HIT_NORM to the maximum raw hit score at any hit epicentre
+function computeHitNorm() {
+  let max = 0;
+  for (const [hlat, hlng] of HIT_EVENTS) {
+    const s = rawHitScore(hlat, hlng);
+    if (s > max) max = s;
+  }
+  HIT_NORM = Math.max(1, max);
+}
+
+// Build (or rebuild) the hit markers layer
+function buildHitMarkers() {
+  if (hitMarkersLayer) map.removeLayer(hitMarkersLayer);
+  hitMarkersLayer = L.layerGroup();
+  for (const [hlat, hlng, hw, hsrc, label] of HIT_EVENTS) {
+    const meta   = SOURCE_META[hsrc] ?? SOURCE_META.hamas;
+    const radius = 4000 + hw * 2500;          // 6.5 – 12.75 km visual radius
+    L.circle([hlat, hlng], {
+      radius,
+      color:       meta.color,
+      fillColor:   meta.color,
+      fillOpacity: 0.13,
+      opacity:     0.55,
+      weight:      1.5,
+    }).bindPopup(
+      `<b>${meta.emoji} Confirmed Hit</b><br>${label}<br>` +
+      `<span style="color:${meta.color}">${meta.label}</span><br>` +
+      `Severity: ${'★'.repeat(Math.round(hw))}${'☆'.repeat(Math.max(0, 4 - Math.round(hw)))}`
+    ).addTo(hitMarkersLayer);
+  }
+  if (document.getElementById('tog-hits')?.checked) hitMarkersLayer.addTo(map);
+}
+
+// ═══════════════════════════════════════════════
+//  CITY LOOKUP
+// ═══════════════════════════════════════════════
+function lookupCity(raw) {
+  raw = raw.trim();
+  // Exact match
+  if (CITY_MAP[raw]) return CITY_MAP[raw];
+  // Strip neighbourhood (after " - " or " – ")
+  const base = raw.split(/ [-–] /)[0].trim();
+  if (CITY_MAP[base]) return CITY_MAP[base];
+  // Substring match (longest key wins)
+  let best = null, bestLen = 0;
+  for (const [k, v] of Object.entries(CITY_MAP)) {
+    if (raw.includes(k) && k.length > bestLen && k.length > 2) {
+      best = v; bestLen = k.length;
+    }
+  }
+  return best;
+}
+
+// ═══════════════════════════════════════════════
+//  CORS-PROXY FETCH
+// ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+//  CORS-PROXY FETCH — all proxies race in parallel
+// ═══════════════════════════════════════════════
+async function tryFetch(url, parseContents) {
+  const r = await fetch(url, { signal: AbortSignal.timeout(9000) });
+  if (!r.ok) throw new Error(`HTTP ${r.status}`);
+  const text = await r.text();
+  if (!text || text.trim()[0] === '<') throw new Error('Got HTML');
+  const json = JSON.parse(text);
+  return parseContents ? JSON.parse(json.contents) : json;
+}
+
+async function fetchWithProxy(url) {
+  const enc = encodeURIComponent(url);
+  // Launch all proxies simultaneously — first successful response wins
+  return Promise.any([
+    tryFetch(url),
+    tryFetch(`https://corsproxy.io/?${url}`),
+    tryFetch(`https://corsproxy.io/?${enc}`),
+    tryFetch(`https://api.allorigins.win/raw?url=${enc}`),
+    tryFetch(`https://api.allorigins.win/get?url=${enc}`, true),
+    tryFetch(`https://api.codetabs.com/v1/proxy?quest=${enc}`),
+    tryFetch(`https://thingproxy.freeboard.io/fetch/${url}`),
+  ]).catch(() => { throw new Error('Could not reach Pikud HaOref API through any proxy'); });
+}
+
+// ═══════════════════════════════════════════════
+//  LOAD 2026 ALARM HISTORY
+// ═══════════════════════════════════════════════
+async function loadAlarmHistory() {
+  showDataState('loading');
+  document.getElementById('hdr-status').textContent = 'Loading 2026 alarm data…';
+
+  const today = (() => {
+    const d = new Date();
+    return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`;
+  })();
+
+  // Primary: local Python proxy (server-to-server, no CORS issues)
+  // Fallback: public CORS proxies (for when file is opened directly)
+  const orefUrl = `https://www.oref.org.il/Shared/Ajax/GetAlarmsHistory.aspx?lang=0&fromDate=01.01.2026&toDate=${today}&mode=0`;
+
+  try {
+    let raw;
+    try {
+      // Try local proxy first (fastest, most reliable)
+      const r = await fetch('/api/alarms', { signal: AbortSignal.timeout(15000) });
+      if (!r.ok) throw new Error(`Local proxy HTTP ${r.status}`);
+      const j = await r.json();
+      if (j.error) throw new Error(j.error);
+      raw = j;
+    } catch (_) {
+      // Fall back to public CORS proxies
+      raw = await fetchWithProxy(orefUrl);
+    }
+
+    // Normalise: API may return array or wrapped object
+    if (!Array.isArray(raw)) {
+      raw = raw.alerts || raw.data || raw.result || [];
+    }
+
+    if (!raw.length) {
+      showDataState('empty');
+      document.getElementById('hdr-status').textContent = 'No 2026 alarms found';
+      liveAlarms = [];
+      rebuildHeatmap();
+      return;
+    }
+
+    // Filter: cat 1 (rockets), 13 (ballistic), 14 (ballistic/long-range)
+    const rockets = raw.filter(a => {
+      const cat = parseInt(a.category ?? a.cat ?? 0);
+      return cat === 1 || cat === 13 || cat === 14;
+    });
+
+    // Aggregate per city — accumulate source-weighted score
+    // cityData[city] = { coords, score, count, sources:{iran,hezbollah,hamas} }
+    const cityData = {};
+    for (const a of rockets) {
+      const city = (a.data || a.city || a.areaname || '').trim();
+      if (!city) continue;
+      const cat    = parseInt(a.category ?? a.cat ?? 0);
+      const coords = lookupCity(city);
+      if (!coords) { console.warn('Unmapped:', city); continue; }
+      const src = inferSource(cat, coords);
+      const sw  = SOURCE_META[src].weight;
+      const key = city;
+      if (!cityData[key]) cityData[key] = { coords, score: 0, count: 0, sources: {} };
+      cityData[key].score  += sw;
+      cityData[key].count  += 1;
+      cityData[key].sources[src] = (cityData[key].sources[src] || 0) + 1;
+    }
+
+    // Tally totals by source for UI
+    const srcTotals = { iran: 0, hezbollah: 0, hamas: 0 };
+    for (const d of Object.values(cityData)) {
+      for (const [src, n] of Object.entries(d.sources)) srcTotals[src] = (srcTotals[src]||0) + n;
+    }
+
+    // Build liveAlarms with log-normalised SOURCE-WEIGHTED scores
+    const maxScore = Math.max(1, ...Object.values(cityData).map(d => d.score));
+    const logMax   = Math.log1p(maxScore);
+    liveAlarms = Object.values(cityData).map(({ coords, score }) => [
+      coords[0], coords[1],
+      Math.min(1, Math.log1p(score) / logMax),
+    ]);
+
+    // Dynamic risk normalisation
+    computeRiskNorm();
+    rebuildHeatmap();
+
+    // Top 5 cities by weighted score
+    const topCities = Object.entries(cityData)
+      .sort((a, b) => b[1].score - a[1].score)
+      .slice(0, 5)
+      .map(([city, d]) => [city, d.count]);
+
+    const mappedCount = Object.keys(cityData).length;
+    const todayLabel  = new Date().toLocaleDateString('en', { month:'short', day:'numeric' });
+    const maxCount    = Math.max(1, ...Object.values(cityData).map(d => d.count));
+
+    showDataState('loaded', {
+      total: rockets.length,
+      cities: mappedCount,
+      range: `Jan 1 – ${todayLabel}, 2026`,
+      topCities,
+      maxCount,
+      srcTotals,
+    });
+
+    document.getElementById('hdr-status').textContent =
+      `${rockets.length.toLocaleString()} alarms loaded`;
+    document.getElementById('hdr-dot').style.background = 'var(--green)';
+
+  } catch (err) {
+    console.error(err);
+    const msg = err.message.includes('proxy')
+      ? 'Pikud HaOref API blocked browser requests (CORS). Try opening from a server, or click Refresh.'
+      : err.message;
+    showDataState('error', msg);
+    document.getElementById('hdr-status').textContent = 'Data load failed — click Refresh to retry';
+    document.getElementById('hdr-dot').style.background = 'var(--red)';
+    liveAlarms = [];
+    rebuildHeatmap();
+  }
+}
+
+function showDataState(state, data) {
+  document.getElementById('ds-loading').style.display = state === 'loading' ? 'flex' : 'none';
+  document.getElementById('ds-loaded').style.display  = state === 'loaded'  ? 'block' : 'none';
+  document.getElementById('ds-empty').style.display   = state === 'empty'   ? 'block' : 'none';
+  document.getElementById('ds-error').style.display   = state === 'error'   ? 'block' : 'none';
+  if (state !== 'loaded') document.getElementById('ds-sources').style.display = 'none';
+
+  if (state === 'loaded' && data) {
+    document.getElementById('ds-total').textContent  = data.total.toLocaleString();
+    document.getElementById('ds-cities').textContent = data.cities;
+    document.getElementById('ds-range').textContent  = data.range;
+
+    const top = document.getElementById('ds-top');
+    top.innerHTML = '';
+    data.topCities.forEach(([city, cnt]) => {
+      const pct = Math.round((cnt / data.maxCount) * 100);
+      const row = document.createElement('div');
+      row.className = 'top-city-row';
+      row.innerHTML = `
+        <span class="tc-name">${city}</span>
+        <div class="tc-bar-bg"><div class="tc-bar-fill" style="width:${pct}%"></div></div>
+        <span class="tc-count">${cnt}</span>`;
+      top.appendChild(row);
+    });
+
+    // Source breakdown
+    const srcEl = document.getElementById('ds-sources');
+    const srcList = document.getElementById('ds-source-list');
+    srcList.innerHTML = '';
+    const srcTotal = Object.values(data.srcTotals).reduce((a,b)=>a+b,0) || 1;
+    for (const [key, meta] of Object.entries(SOURCE_META)) {
+      const n = data.srcTotals[key] || 0;
+      if (!n) continue;
+      const pct = Math.round((n / srcTotal) * 100);
+      const row = document.createElement('div');
+      row.className = 'src-row';
+      row.innerHTML = `
+        <span class="src-label" style="color:${meta.color}">${meta.emoji} ${meta.label}</span>
+        <div class="tc-bar-bg" style="margin:3px 0">
+          <div class="tc-bar-fill" style="width:${pct}%;background:${meta.color};opacity:0.85"></div>
+        </div>
+        <span class="tc-count" style="color:${meta.color}">${n.toLocaleString()}</span>`;
+      srcList.appendChild(row);
+    }
+    srcEl.style.display = 'block';
+  }
+  if (state === 'error' && data) {
+    document.getElementById('ds-error').textContent = '⚠️ ' + data;
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  HEATMAP
+// ═══════════════════════════════════════════════
+const HEAT_OPTIONS = {
+  radius: 30, blur: 22, maxZoom: 13, max: 1.0,
+  gradient: {
+    0.00: '#0033ff', 0.20: '#0099ff', 0.40: '#00ffcc',
+    0.58: '#aaff00', 0.72: '#ffdd00', 0.85: '#ff6600',
+    0.95: '#ff2200', 1.00: '#cc0000',
+  },
+};
+
+function rebuildHeatmap() {
+  if (heatLayer) map.removeLayer(heatLayer);
+  // Merge alarm data + hit events into one heatmap array
+  const hitHeatPts = HIT_EVENTS.map(([hlat, hlng, hw, hsrc]) => {
+    const sw = SOURCE_META[hsrc]?.weight ?? 1;
+    // Scale hit weight into 0-1 space comparable to liveAlarms entries
+    return [hlat, hlng, Math.min(1, (hw * sw) / (3.5 * 3.0) * 1.4)];
+  });
+  heatLayer = L.heatLayer([...liveAlarms, ...hitHeatPts], HEAT_OPTIONS);
+  if (document.getElementById('tog-heat').checked) heatLayer.addTo(map);
+}
+
+// ═══════════════════════════════════════════════
+//  RISK NORMALISATION
+//  Find max raw risk at any alarm epicentre
+// ═══════════════════════════════════════════════
+function computeRiskNorm() {
+  // Alarm norm: max alarm-based raw score at any alarm epicentre
+  if (!liveAlarms.length) { RISK_NORM = 1; }
+  else {
+    let maxRaw = 0;
+    for (const [alat, alng] of liveAlarms) {
+      let raw = 0;
+      for (const [blat, blng, bw] of liveAlarms) {
+        raw += bw * Math.exp(-haversine(alat, alng, blat, blng) / 14);
+      }
+      if (raw > maxRaw) maxRaw = raw;
+    }
+    RISK_NORM = Math.max(0.1, maxRaw * 0.9);
+  }
+  // Hit norm always refreshed (static dataset, but call after RISK_NORM is set)
+  computeHitNorm();
+}
+
+// ═══════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════
+function init() {
+  map = L.map('map', { center: [31.8, 34.9], zoom: 8 });
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '© OpenStreetMap contributors © CARTO',
+    subdomains: 'abcd', maxZoom: 19,
+  }).addTo(map);
+
+  // Empty heatmap to start; will be rebuilt once data loads
+  heatLayer = L.heatLayer([], HEAT_OPTIONS).addTo(map);
+
+  citiesLayer = L.layerGroup();
+  CITIES.forEach(c => {
+    L.marker([c.lat, c.lng], {
+      icon: L.divIcon({
+        className: '',
+        html: `<div style="background:rgba(0,0,0,.72);color:#bbb;padding:2px 7px;
+          border-radius:3px;font-size:11px;border:1px solid #3a3a3a;
+          white-space:nowrap;font-family:Segoe UI,sans-serif">${c.n}</div>`,
+        iconAnchor: [0, 0],
+      }),
+    }).addTo(citiesLayer);
+  });
+  citiesLayer.addTo(map);
+
+  routeGroup = L.layerGroup().addTo(map);
+
+  // Confirmed hit markers (static dataset — always available)
+  buildHitMarkers();
+
+  const now = new Date();
+  document.getElementById('inp-time').value =
+    new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+
+  map.on('click', e => {
+    if (!latlngOrigin) {
+      setPoint('origin', e.latlng, coordLabel(e.latlng));
+      document.getElementById('inp-origin').value = coordLabel(e.latlng);
+    } else if (!latlngDest) {
+      setPoint('dest', e.latlng, coordLabel(e.latlng));
+      document.getElementById('inp-dest').value = coordLabel(e.latlng);
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('#search-dropdown') &&
+        !e.target.closest('#inp-origin') &&
+        !e.target.closest('#inp-dest')) hideDropdown();
+  });
+
+  setupSearch('origin');
+  setupSearch('dest');
+
+  // Show logged-in user in header
+  fetch('/api/me').then(r => r.ok ? r.json() : null).then(u => {
+    if (!u || !u.name) return;
+    const widget = document.getElementById('user-widget');
+    const avatar = document.getElementById('user-avatar');
+    const name   = document.getElementById('user-name');
+    if (u.avatar) avatar.src = u.avatar;
+    else avatar.style.display = 'none';
+    name.textContent = u.name || u.email || '';
+    widget.style.display = 'flex';
+  }).catch(() => {});
+
+  // Kick off live data fetch
+  loadAlarmHistory();
+}
+
+function coordLabel(ll) {
+  return `${ll.lat.toFixed(4)}, ${ll.lng.toFixed(4)}`;
+}
+
+// ═══════════════════════════════════════════════
+//  SEARCH / GEOCODING
+// ═══════════════════════════════════════════════
+function setupSearch(type) {
+  const inp = document.getElementById(`inp-${type}`);
+  inp.addEventListener('input', () => {
+    clearTimeout(searchTimers[type]);
+    const q = inp.value.trim();
+    if (q.length < 2) { hideDropdown(); return; }
+    searchTimers[type] = setTimeout(() => geocode(q, type), 380);
+  });
+  inp.addEventListener('focus', () => {
+    const q = inp.value.trim();
+    if (q.length >= 2) geocode(q, type);
+  });
+}
+
+async function geocode(query, type) {
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ' Israel')}&format=json&limit=6&addressdetails=1`;
+  try {
+    const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+    showDropdown(await r.json(), type);
+  } catch (_) { hideDropdown(); }
+}
+
+function showDropdown(results, type) {
+  const dd  = document.getElementById('search-dropdown');
+  const inp = document.getElementById(`inp-${type}`);
+  const rect = inp.getBoundingClientRect();
+  dd.style.left  = rect.left + 'px';
+  dd.style.top   = (rect.bottom + 4) + 'px';
+  dd.style.width = rect.width + 'px';
+  dd.innerHTML   = '';
+
+  if (!results?.length) { hideDropdown(); return; }
+
+  results.forEach(r => {
+    const parts = r.display_name.split(',');
+    const main  = parts[0].trim();
+    const sub   = parts.slice(1, 3).join(',').trim();
+    const div   = document.createElement('div');
+    div.className = 'drop-item';
+    div.innerHTML = `<div class="place-main">${main}</div><div class="place-sub">${sub}</div>`;
+    div.addEventListener('click', () => {
+      const ll = { lat: parseFloat(r.lat), lng: parseFloat(r.lon) };
+      document.getElementById(`inp-${type}`).value = main;
+      setPoint(type, ll, main);
+      hideDropdown();
+    });
+    dd.appendChild(div);
+  });
+  dd.style.display = 'block';
+}
+
+function hideDropdown() {
+  document.getElementById('search-dropdown').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+//  MARKERS
+// ═══════════════════════════════════════════════
+function setPoint(type, ll, label) {
+  if (type === 'origin') {
+    if (markerOrigin) map.removeLayer(markerOrigin);
+    latlngOrigin = ll;
+    markerOrigin = makeMarker(ll, '#00c853', `Start: ${label}`).addTo(map);
+  } else {
+    if (markerDest) map.removeLayer(markerDest);
+    latlngDest = ll;
+    markerDest = makeMarker(ll, '#ff4444', `End: ${label}`).addTo(map);
+  }
+  refreshStatus();
+}
+
+function makeMarker(ll, color, tip) {
+  return L.marker([ll.lat, ll.lng], {
+    icon: L.divIcon({
+      className: '',
+      html: `<div style="width:14px;height:14px;border-radius:50%;background:${color};
+        border:3px solid #fff;box-shadow:0 0 8px ${color}99"></div>`,
+      iconAnchor: [7, 7],
+    }),
+  }).bindTooltip(tip);
+}
+
+function refreshStatus() {
+  const el = document.getElementById('status-text');
+  if (!latlngOrigin && !latlngDest) el.textContent = 'Ready — enter origin and destination';
+  else if (latlngOrigin && !latlngDest) el.textContent = 'Origin set — enter destination';
+  else if (!latlngOrigin && latlngDest) el.textContent = 'Destination set — enter origin';
+  else el.textContent = 'Both points set — click Calculate';
+}
+
+// ═══════════════════════════════════════════════
+//  ROUTE CALCULATE
+// ═══════════════════════════════════════════════
+async function doCalculate() {
+  if (!latlngOrigin || !latlngDest) { alert('Set both origin and destination.'); return; }
+  setLoading(true);
+  setStatus('Fetching route…');
+
+  try {
+    const osrm = `https://router.project-osrm.org/route/v1/driving/` +
+      `${latlngOrigin.lng},${latlngOrigin.lat};${latlngDest.lng},${latlngDest.lat}` +
+      `?overview=full&geometries=geojson`;
+    const data = await (await fetch(osrm)).json();
+    if (data.code !== 'Ok' || !data.routes?.length) throw new Error('Routing failed');
+
+    const route  = data.routes[0];
+    const coords = route.geometry.coordinates;
+    const hour   = (() => {
+      const v = document.getElementById('inp-time').value;
+      return v ? new Date(v).getHours() : new Date().getHours();
+    })();
+    const risk = calcRisk(coords, hour);
+
+    drawRoute(coords, risk.pts);
+    updateUI(risk, route.distance, route.duration);
+    setStatus('Analysis complete ✓');
+  } catch (e) {
+    console.error(e);
+    setStatus('Error: ' + e.message);
+    alert('Could not calculate route. Check connection and try again.');
+  }
+  setLoading(false);
+}
+
+// ═══════════════════════════════════════════════
+//  RISK ALGORITHM
+// ═══════════════════════════════════════════════
+function haversine(lat1, lng1, lat2, lng2) {
+  const R = 6371, r = Math.PI / 180;
+  const dLat = (lat2 - lat1) * r, dLng = (lng2 - lng1) * r;
+  const a = Math.sin(dLat/2)**2 +
+            Math.cos(lat1*r) * Math.cos(lat2*r) * Math.sin(dLng/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function timeMultiplier(hour) {
+  if (hour >= 12 && hour < 18) return 1.18;
+  if (hour >=  6 && hour < 12) return 1.10;
+  if (hour >= 18 && hour < 22) return 1.05;
+  return 0.85;
+}
+
+function calcRisk(coords, hour) {
+  const tm   = timeMultiplier(hour);
+  const step = Math.max(1, Math.floor(coords.length / 200));
+  const pts  = [];
+  let sum = 0, maxR = 0, highCount = 0;
+
+  for (let i = 0; i < coords.length; i += step) {
+    const [lng, lat] = coords[i];
+
+    // Alarm-based score (normalised 0–1)
+    let alarmRaw = 0;
+    for (const [alat, alng, w] of liveAlarms) {
+      const d = haversine(lat, lng, alat, alng);
+      if (d < 55) alarmRaw += w * Math.exp(-d / 14);
+    }
+    const alarmNorm = Math.min(1, alarmRaw / RISK_NORM);
+
+    // Hit-based score (normalised 0–1, tighter 8 km decay)
+    const hitNorm = Math.min(1, rawHitScore(lat, lng) / HIT_NORM);
+
+    // Blend: alarms 60% + confirmed hits 40%, then time-of-day factor
+    const norm = Math.min(1, (alarmNorm * 0.6 + hitNorm * 0.4) * tm);
+    pts.push({ lat, lng, r: norm, i });
+    sum += norm;
+    if (norm > maxR) maxR = norm;
+    if (norm > 0.35) highCount++;
+  }
+
+  return { pts, avg: pts.length ? sum / pts.length : 0, max: maxR, highCount };
+}
+
+// ═══════════════════════════════════════════════
+//  DRAW ROUTE
+// ═══════════════════════════════════════════════
+function riskColor(r) {
+  if (r < 0.20) return '#00c853';
+  if (r < 0.40) return '#ffd700';
+  if (r < 0.60) return '#ff8c00';
+  if (r < 0.80) return '#ff4444';
+  return '#cc0000';
+}
+
+function drawRoute(coords, pts) {
+  routeGroup.clearLayers();
+  const colorIt = document.getElementById('tog-colorroute').checked;
+
+  if (colorIt && pts.length > 1) {
+    for (let i = 0; i < pts.length - 1; i++) {
+      const seg = coords.slice(pts[i].i, pts[i+1].i + 1).map(c => [c[1], c[0]]);
+      if (seg.length >= 2)
+        L.polyline(seg, { color: riskColor((pts[i].r + pts[i+1].r) / 2), weight: 5.5, opacity: 0.92 }).addTo(routeGroup);
+    }
+    const last = pts[pts.length - 1];
+    const tail = coords.slice(last.i).map(c => [c[1], c[0]]);
+    if (tail.length >= 2)
+      L.polyline(tail, { color: riskColor(last.r), weight: 5.5, opacity: 0.92 }).addTo(routeGroup);
+  } else {
+    L.polyline(coords.map(c => [c[1], c[0]]), { color: '#2196f3', weight: 5.5, opacity: 0.9 }).addTo(routeGroup);
+  }
+
+  map.fitBounds(L.latLngBounds(coords.map(c => [c[1], c[0]])), { padding: [50, 50] });
+}
+
+// ═══════════════════════════════════════════════
+//  UPDATE SIDEBAR UI
+// ═══════════════════════════════════════════════
+function updateUI(risk, distM, durS) {
+  document.getElementById('risk-placeholder').style.display = 'none';
+  document.getElementById('risk-content').style.display = 'block';
+
+  const pct    = Math.round(risk.avg * 100);
+  const maxPct = Math.round(risk.max * 100);
+
+  let col, lv, desc;
+  if      (pct < 10) { col='#00c853'; lv='Very Low Risk';   desc='Route mostly through areas with no 2026 alarms.'; }
+  else if (pct < 25) { col='#7cb342'; lv='Low Risk';        desc='Route near areas with few 2026 alarms.'; }
+  else if (pct < 40) { col='#ffd700'; lv='Moderate Risk';   desc='Route passes through moderately affected areas.'; }
+  else if (pct < 58) { col='#ff8c00'; lv='High Risk';       desc='Route crosses multiple alarm zones from 2026.'; }
+  else if (pct < 75) { col='#ff4444'; lv='Very High Risk';  desc='Route through heavily targeted areas — take precautions.'; }
+  else               { col='#cc0000'; lv='Extreme Risk';    desc='Route through the most targeted zones in 2026.'; }
+
+  const circle = document.getElementById('risk-circle');
+  circle.style.borderColor = col;
+  circle.style.boxShadow   = `0 0 22px ${col}55`;
+  const pctEl = document.getElementById('risk-pct');
+  pctEl.textContent = `${pct}%`;
+  pctEl.style.color = col;
+  document.getElementById('risk-level').textContent  = lv;
+  document.getElementById('risk-level').style.color  = col;
+  document.getElementById('risk-desc').textContent   = desc;
+
+  document.getElementById('s-dist').textContent = (distM / 1000).toFixed(1) + ' km';
+  const dm = Math.round(durS / 60);
+  document.getElementById('s-dur').textContent  = dm >= 60 ? `${Math.floor(dm/60)}h ${dm%60}m` : `${dm}m`;
+
+  const zonesEl = document.getElementById('s-zones');
+  zonesEl.textContent  = risk.highCount;
+  zonesEl.style.color  = risk.highCount > 5 ? '#ff4444' : '#00c853';
+
+  const maxEl = document.getElementById('s-max');
+  maxEl.textContent = maxPct + '%';
+  maxEl.style.color = riskColor(risk.max);
+
+  buildSegments(risk.pts);
+}
+
+function buildSegments(pts) {
+  const cont = document.getElementById('seg-list');
+  cont.innerHTML = '';
+  if (!pts.length) return;
+  const labels = ['Start','25%','Middle','75%','End'];
+  const bsz = Math.ceil(pts.length / 5);
+  for (let b = 0; b < 5; b++) {
+    const sl = pts.slice(b * bsz, (b+1) * bsz);
+    if (!sl.length) continue;
+    const avg = sl.reduce((s,p) => s + p.r, 0) / sl.length;
+    const col = riskColor(avg), pct = Math.round(avg * 100);
+    const div = document.createElement('div');
+    div.className = 'seg-item';
+    div.innerHTML = `
+      <span class="seg-label">${labels[b]}</span>
+      <div class="seg-bar-bg"><div class="seg-bar-fill" style="width:${pct}%;background:${col}"></div></div>
+      <span class="seg-pct" style="color:${col}">${pct}%</span>`;
+    cont.appendChild(div);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  CLEAR
+// ═══════════════════════════════════════════════
+function doClear() {
+  if (markerOrigin) { map.removeLayer(markerOrigin); markerOrigin = null; }
+  if (markerDest)   { map.removeLayer(markerDest);   markerDest   = null; }
+  latlngOrigin = latlngDest = null;
+  routeGroup.clearLayers();
+  document.getElementById('inp-origin').value = '';
+  document.getElementById('inp-dest').value   = '';
+  document.getElementById('risk-placeholder').style.display = 'block';
+  document.getElementById('risk-content').style.display     = 'none';
+  refreshStatus();
+  map.setView([31.8, 34.9], 8);
+}
+
+// ═══════════════════════════════════════════════
+//  LAYER TOGGLES
+// ═══════════════════════════════════════════════
+function toggleLayer(which) {
+  if (which === 'heat') {
+    document.getElementById('tog-heat').checked ? map.addLayer(heatLayer) : map.removeLayer(heatLayer);
+  } else if (which === 'cities') {
+    document.getElementById('tog-cities').checked ? map.addLayer(citiesLayer) : map.removeLayer(citiesLayer);
+  } else if (which === 'hits') {
+    document.getElementById('tog-hits').checked ? map.addLayer(hitMarkersLayer) : map.removeLayer(hitMarkersLayer);
+  }
+}
+
+// ═══════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════
+function setLoading(on) {
+  document.getElementById('loading').className = on ? 'loading show' : 'loading';
+  document.getElementById('btn-calc').disabled = on;
+}
+function setStatus(msg) { document.getElementById('status-text').textContent = msg; }
+
+// ── Start ──
+init();
+</script>
+</body>
+</html>

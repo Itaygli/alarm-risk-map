@@ -1,0 +1,17 @@
+# Secrets
+.env
+.env.*
+
+# Runtime cache (rebuilt automatically from live API)
+alarms_cache.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
