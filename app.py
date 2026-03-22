@@ -81,7 +81,10 @@ def require_login(f):
 @app.route('/')
 @require_login
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    resp = make_response(send_from_directory(app.static_folder, 'index.html'))
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    resp.headers['Pragma'] = 'no-cache'
+    return resp
 
 
 @app.route('/api/me')

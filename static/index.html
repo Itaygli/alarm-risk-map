@@ -342,6 +342,123 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ══════════════════════════════════════════
+       MOBILE FAB + DRAWER (hidden on desktop)
+    ══════════════════════════════════════════ */
+    #mob-fab {
+      display: none;
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 950;
+      background: var(--blue);
+      color: #fff;
+      border: none;
+      border-radius: 24px;
+      padding: 13px 26px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      box-shadow: 0 4px 20px rgba(0,0,0,.65);
+      align-items: center;
+      gap: 9px;
+      white-space: nowrap;
+      transition: transform .15s, box-shadow .15s;
+    }
+    #mob-fab:active { transform: translateX(-50%) scale(.95); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+
+    #mob-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.55);
+      z-index: 905;
+    }
+    #mob-backdrop.mob-open { display: block; }
+
+    .mob-handle {
+      display: none;
+      justify-content: center;
+      padding: 10px 0 6px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .mob-handle-bar {
+      width: 40px; height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+    }
+
+    /* ══════════════════════════════════════════
+       TABLET  641 – 1024 px
+    ══════════════════════════════════════════ */
+    @media (max-width: 1024px) and (min-width: 641px) {
+      .sidebar { width: 270px; min-width: 270px; }
+    }
+
+    /* ══════════════════════════════════════════
+       MOBILE  ≤ 640 px
+    ══════════════════════════════════════════ */
+    @media (max-width: 640px) {
+      /* Map fills the whole viewport */
+      .main { position: relative; overflow: visible; }
+      .map-wrap {
+        position: fixed;
+        inset: 0;
+        top: 0; /* sits under header visually but we offset below */
+      }
+
+      /* Sidebar becomes a bottom drawer */
+      .sidebar {
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-height: 78vh;
+        border-right: none;
+        border-top: 2px solid var(--blue);
+        border-radius: 18px 18px 0 0;
+        z-index: 910;
+        transform: translateY(102%);
+        transition: transform .32s cubic-bezier(.32,.72,0,1);
+        overflow-y: auto;
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+      }
+      .sidebar.mob-open { transform: translateY(0); }
+
+      /* Show mobile-only elements */
+      #mob-fab  { display: flex; }
+      .mob-handle { display: flex; }
+
+      /* Header: compact */
+      .header { padding: 8px 12px; }
+      .header-left h1 { font-size: 14px; }
+      .header-left .sub { display: none; }
+      .badge { font-size: 9px; padding: 2px 6px; }
+      #hdr-status { display: none; }   /* hide long status text */
+      #user-name  { display: none; }   /* show only avatar on mobile */
+
+      /* Map hint hidden (FAB takes over) */
+      .map-hint { display: none; }
+
+      /* Inputs: 16px prevents iOS zoom-in on focus */
+      input, select { font-size: 16px !important; }
+
+      /* Larger touch targets for toggles */
+      .toggle { width: 42px; height: 24px; }
+      .tslider { border-radius: 12px; }
+      .tslider::before { width: 18px; height: 18px; bottom: 3px; left: 3px; }
+      input:checked + .tslider::before { transform: translateX(18px); }
+
+      /* Buttons: taller for fat fingers */
+      .btn { padding: 12px 14px; font-size: 14px; }
+
+      /* Stats grid single column */
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+    }
   </style>
 </head>
 <body>
@@ -372,11 +489,19 @@
   </div>
 </div>
 
+<!-- Mobile: backdrop + FAB -->
+<div id="mob-backdrop" onclick="closeMobileSidebar()"></div>
+<button id="mob-fab" onclick="toggleMobileSidebar()">☰&nbsp; Panel</button>
+
 <!-- MAIN -->
 <div class="main">
 
   <!-- SIDEBAR -->
   <div class="sidebar">
+    <!-- Mobile drag handle (tap to close) -->
+    <div class="mob-handle" onclick="closeMobileSidebar()">
+      <div class="mob-handle-bar"></div>
+    </div>
 
     <!-- Data Source -->
     <div class="sec">
@@ -1501,13 +1626,18 @@ async function loadAlarmHistory() {
 
   try {
     let raw;
+    // serverContacted: true once the Flask proxy replies (even if oref is blocked).
+    // When true we never fall through to browser CORS proxies — the server is
+    // the authoritative path; CORS proxies are only for direct-file-open fallback.
+    let serverContacted = false;
     try {
       // Try local proxy first (fastest, most reliable)
       const r = await fetch('/api/alarms', { signal: AbortSignal.timeout(20000) });
+      serverContacted = true;
       if (!r.ok) throw new Error(`Local proxy HTTP ${r.status}`);
       const j = await r.json();
       if (j.error) throw new Error(j.error);
-      // Graceful offline: server couldn't reach oref.org.il (e.g. geo-block)
+      // Graceful offline: server is up but oref.org.il is geo-blocked from Railway
       if (j.offline) {
         liveAlarms = [];
         computeRiskNorm();
@@ -1518,8 +1648,9 @@ async function loadAlarmHistory() {
         return;
       }
       raw = j;
-    } catch (_) {
-      // Fall back to public CORS proxies
+    } catch (proxyErr) {
+      // Only try browser CORS proxies if the Flask server itself was unreachable
+      if (serverContacted) throw proxyErr;
       raw = await fetchWithProxy(orefUrl);
     }
 
@@ -1906,6 +2037,8 @@ async function doCalculate() {
     drawRoute(coords, risk.pts);
     updateUI(risk, route.distance, route.duration);
     setStatus('Analysis complete ✓');
+    // On mobile, slide the panel up so the user sees the results
+    if (window.innerWidth <= 640) openMobileSidebar();
   } catch (e) {
     console.error(e);
     setStatus('Error: ' + e.message);
@@ -2078,6 +2211,24 @@ function doClear() {
 // ═══════════════════════════════════════════════
 //  LAYER TOGGLES
 // ═══════════════════════════════════════════════
+// ═══════════════════════════════════════════════
+//  MOBILE SIDEBAR DRAWER
+// ═══════════════════════════════════════════════
+function openMobileSidebar() {
+  document.querySelector('.sidebar').classList.add('mob-open');
+  document.getElementById('mob-backdrop').classList.add('mob-open');
+  document.getElementById('mob-fab').innerHTML = '✕&nbsp; Close';
+}
+function closeMobileSidebar() {
+  document.querySelector('.sidebar').classList.remove('mob-open');
+  document.getElementById('mob-backdrop').classList.remove('mob-open');
+  document.getElementById('mob-fab').innerHTML = '☰&nbsp; Panel';
+}
+function toggleMobileSidebar() {
+  document.querySelector('.sidebar').classList.contains('mob-open')
+    ? closeMobileSidebar() : openMobileSidebar();
+}
+
 function toggleLayer(which) {
   if (which === 'heat') {
     document.getElementById('tog-heat').checked ? map.addLayer(heatLayer) : map.removeLayer(heatLayer);
