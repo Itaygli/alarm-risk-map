@@ -616,6 +616,45 @@
       <div class="mob-handle-bar"></div>
     </div>
 
+    <!-- Route planning (Google Maps–style) -->
+    <div class="sec">
+      <div class="sec-title">Route Planning</div>
+
+      <div class="route-bar">
+        <!-- Dot column (green ● ┆ red ●) -->
+        <div class="dot-col">
+          <div class="dot-origin"></div>
+          <div class="dot-line"></div>
+          <div class="dot-dest"></div>
+        </div>
+
+        <!-- Input column -->
+        <div class="inputs-col">
+          <div class="inp-row">
+            <input id="inp-origin" type="text" placeholder="Your location" autocomplete="off" />
+            <button class="loc-btn" onclick="detectLocation()" title="Use my location">◎</button>
+          </div>
+          <div class="inp-row">
+            <input id="inp-dest" type="text" placeholder="Choose destination" autocomplete="off" />
+            <button class="swap-btn" onclick="swapPoints()" title="Swap origin &amp; destination">⇅</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="time-row">
+        <label>🕐 Depart</label>
+        <input id="inp-time" type="datetime-local" />
+      </div>
+
+      <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()">Calculate Route Risk</button>
+      <button class="btn btn-secondary" onclick="doClear()">Clear Route</button>
+
+      <div class="status-bar">
+        <div class="live-dot" id="status-dot"></div>
+        <span id="status-text">Ready — enter origin and destination</span>
+      </div>
+    </div>
+
     <!-- Data Source -->
     <div class="sec">
       <div class="sec-title">2026 Alarm Data — Pikud HaOref</div>
@@ -662,45 +701,6 @@
 
       <button class="btn btn-secondary" style="font-size:11px;padding:6px;margin-top:10px"
               onclick="loadAlarmHistory()">↻ Refresh</button>
-    </div>
-
-    <!-- Route planning (Google Maps–style) -->
-    <div class="sec">
-      <div class="sec-title">Route Planning</div>
-
-      <div class="route-bar">
-        <!-- Dot column (green ● ┆ red ●) -->
-        <div class="dot-col">
-          <div class="dot-origin"></div>
-          <div class="dot-line"></div>
-          <div class="dot-dest"></div>
-        </div>
-
-        <!-- Input column -->
-        <div class="inputs-col">
-          <div class="inp-row">
-            <input id="inp-origin" type="text" placeholder="Your location" autocomplete="off" />
-            <button class="loc-btn" onclick="detectLocation()" title="Use my location">◎</button>
-          </div>
-          <div class="inp-row">
-            <input id="inp-dest" type="text" placeholder="Choose destination" autocomplete="off" />
-            <button class="swap-btn" onclick="swapPoints()" title="Swap origin &amp; destination">⇅</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="time-row">
-        <label>🕐 Depart</label>
-        <input id="inp-time" type="datetime-local" />
-      </div>
-
-      <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()">Calculate Route Risk</button>
-      <button class="btn btn-secondary" onclick="doClear()">Clear Route</button>
-
-      <div class="status-bar">
-        <div class="live-dot" id="status-dot"></div>
-        <span id="status-text">Ready — enter origin and destination</span>
-      </div>
     </div>
 
     <!-- Risk assessment -->
