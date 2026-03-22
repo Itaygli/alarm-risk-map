@@ -788,6 +788,25 @@
 
     <!-- Route planning (Google Maps–style) -->
     <div class="sec">
+      <!-- Collapsed route summary (shown after navigation) -->
+      <div id="route-summary" style="display:none" onclick="expandRouteInputs()">
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 0">
+          <div style="display:flex;flex-direction:column;gap:2px;flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text)">
+              <span style="width:8px;height:8px;border-radius:50%;background:#00c853;flex-shrink:0"></span>
+              <span id="summary-origin" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text)">
+              <span style="width:8px;height:8px;border-radius:50%;background:#ff4444;flex-shrink:0"></span>
+              <span id="summary-dest" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</span>
+            </div>
+          </div>
+          <button class="btn btn-secondary" style="font-size:11px;padding:4px 10px;flex-shrink:0">✎ Edit</button>
+        </div>
+      </div>
+
+      <!-- Expandable route inputs -->
+      <div id="route-inputs">
       <div class="sec-title" data-i18n="routePlan">Route Planning</div>
 
       <div class="route-bar">
@@ -819,6 +838,8 @@
       </div>
 
       <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()" data-i18n="navigate">Navigate</button>
+      </div><!-- /route-inputs -->
+
       <!-- Navigation buttons (shown after route calculation) -->
       <div id="nav-btns" style="display:none;margin-top:6px">
         <div class="sec-title" style="margin-bottom:6px" data-i18n="goNow">Go now</div>
@@ -2648,6 +2669,7 @@ function clearInput(type) {
   document.getElementById('nav-btns').style.display = 'none';
   document.getElementById('risk-content').style.display = 'none';
   document.getElementById('btn-calc').style.display = '';
+  expandRouteInputs();
   hideMobileGoBar();
   refreshStatus();
 }
@@ -2684,6 +2706,21 @@ function swapPoints() {
 // ═══════════════════════════════════════════════
 // Stored alternate route for "Switch to safer route" button
 let pendingAltRoute = null;
+
+function collapseRouteInputs() {
+  document.getElementById('route-inputs').style.display = 'none';
+  const summary = document.getElementById('route-summary');
+  document.getElementById('summary-origin').textContent =
+    document.getElementById('inp-origin').value || '—';
+  document.getElementById('summary-dest').textContent =
+    document.getElementById('inp-dest').value || '—';
+  summary.style.display = 'block';
+}
+
+function expandRouteInputs() {
+  document.getElementById('route-inputs').style.display = '';
+  document.getElementById('route-summary').style.display = 'none';
+}
 
 async function doCalculate() {
   if (!latlngOrigin || !latlngDest) { alert(t('setOriginDest')); return; }
@@ -2785,6 +2822,7 @@ async function doCalculate() {
 
     setStatus('Analysis complete ✓');
     document.getElementById('btn-calc').style.display = 'none';
+    collapseRouteInputs();
     if (window.innerWidth <= 640) openMobileSidebar();
   } catch (e) {
     console.error(e);
