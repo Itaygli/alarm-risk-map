@@ -9,6 +9,7 @@ Flask server — Israel Alarm Risk Map
 import os
 import json
 import urllib.request
+import concurrent.futures
 from datetime import date
 from functools import wraps
 
@@ -25,6 +26,7 @@ PORT       = int(os.environ.get('PORT', 3030))
 
 app = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'static'))
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-change-before-deploying')
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # no caching for static files
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE']   = os.environ.get('RENDER') == 'true'
 
@@ -78,17 +80,56 @@ def require_login(f):
 
 # ── Static / app routes ───────────────────────────────────────────────────────
 @app.route('/')
-@require_login
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    # Read file directly — avoids send_from_directory's 12-hour max-age default
+    html_path = os.path.join(app.static_folder, 'index.html')
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    # Inject user country code from Vercel's geo header (or fallback)
+    country = request.headers.get('x-vercel-ip-country', 'US')
+    html = html.replace('</head>', f'  <meta name="user-country" content="{country}" />\n</head>', 1)
+    resp = make_response(html)
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
+    return resp
 
+
+@app.route('/manifest.json')
+def manifest():
+    return send_from_directory(app.static_folder, 'manifest.json', mimetype='application/manifest+json')
+
+@app.route('/sw.js')
+def service_worker():
+    return send_from_directory(app.static_folder, 'sw.js', mimetype='application/javascript')
+
+@app.route('/icon-192.png')
+def icon192():
+    return send_from_directory(app.static_folder, 'icon-192.png', mimetype='image/png')
+
+@app.route('/icon-512.png')
+def icon512():
+    return send_from_directory(app.static_folder, 'icon-512.png', mimetype='image/png')
+
+@app.route('/google147126fdd8a61d8a.html')
+def google_verify():
+    return send_from_directory(app.static_folder, 'google147126fdd8a61d8a.html')
+
+@app.route('/robots.txt')
+def robots():
+    return send_from_directory(app.static_folder, 'robots.txt', mimetype='text/plain')
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory(app.static_folder, 'sitemap.xml', mimetype='application/xml')
 
 @app.route('/api/me')
 def api_me():
     if NO_AUTH:
         return jsonify({'name': 'Developer (local)', 'email': '', 'avatar': '', 'provider': 'local'})
     if 'user' not in session:
-        return jsonify({}), 401
+        return jsonify({})  # not logged in — 200 with empty body
     return jsonify(session['user'])
 
 
@@ -104,8 +145,9 @@ def login_page():
 def login_start(provider):
     if provider not in [p for p, _ in PROVIDERS]:
         return 'OAuth provider not configured', 404
-    # On Render the app is behind a TLS proxy; force https scheme for redirect_uri
-    scheme = 'https' if os.environ.get('RENDER') else request.scheme
+    # On cloud platforms the app is behind a TLS proxy; force https for redirect_uri
+    is_cloud = os.environ.get('RENDER') or os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('VERCEL')
+    scheme = 'https' if is_cloud else request.scheme
     redirect_uri = url_for('login_callback', provider=provider,
                            _external=True, _scheme=scheme)
     client = oauth.create_client(provider)
@@ -188,7 +230,6 @@ def _merge(existing, new_items):
 
 
 @app.route('/api/alarms')
-@require_login
 def api_alarms():
     today      = date.today().strftime('%d.%m.%Y')
     candidates = [
@@ -209,25 +250,32 @@ def api_alarms():
 
     cached = _load_cache()
 
-    for url in candidates:
-        try:
-            req = urllib.request.Request(url, headers=req_headers)
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                raw = resp.read()
-            text = raw.decode('utf-8', errors='replace').strip()
-            if not text or text[0] not in ('[', '{'):
-                continue
-            parsed = json.loads(text)
-            if isinstance(parsed, dict) and 'data' in parsed:
-                parsed = parsed['data']
-            if not isinstance(parsed, list) or not parsed:
-                continue
-            added = _merge(cached, parsed)
-            print(f'[PROXY] {url} -> {len(parsed)} items, +{added} new (cache={len(cached)})')
-            _save_cache(cached)
-            break
-        except Exception as e:
-            print(f'[PROXY] FAIL {url} -> {e}')
+    def _fetch_url(url):
+        req = urllib.request.Request(url, headers=req_headers)
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw = resp.read()
+        text = raw.decode('utf-8', errors='replace').strip()
+        if not text or text[0] not in ('[', '{'):
+            raise ValueError('Not JSON')
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and 'data' in parsed:
+            parsed = parsed['data']
+        if not isinstance(parsed, list) or not parsed:
+            raise ValueError('Empty list')
+        return url, parsed
+
+    # Race all candidates in parallel — respond as soon as any one succeeds
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(candidates)) as ex:
+        futures = {ex.submit(_fetch_url, url): url for url in candidates}
+        for future in concurrent.futures.as_completed(futures, timeout=10):
+            try:
+                url, parsed = future.result()
+                added = _merge(cached, parsed)
+                print(f'[PROXY] {url} -> {len(parsed)} items, +{added} new (cache={len(cached)})')
+                _save_cache(cached)
+                break
+            except Exception as e:
+                print(f'[PROXY] FAIL {futures[future]} -> {e}')
 
     if cached:
         body = json.dumps(cached, ensure_ascii=False)
@@ -235,7 +283,10 @@ def api_alarms():
         r.headers['Content-Type'] = 'application/json; charset=utf-8'
         return r
 
-    return jsonify({'error': 'No alarm data available and no local cache'}), 502
+    # Live API unreachable and no cache — return a soft offline signal so the
+    # frontend can degrade gracefully (confirmed hit-sites layer still works).
+    return jsonify({'alarms': [], 'offline': True,
+                    'msg': 'Live alarm API unreachable from server — map shows confirmed hit sites only'}), 200
 
 
 # ── Login page HTML ───────────────────────────────────────────────────────────
@@ -244,7 +295,7 @@ _LOGIN_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Israel Alarm Risk Analyzer — Sign In</title>
+<title>Israel Navigation Risk Analyzer — Sign In</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -291,7 +342,7 @@ svg{flex-shrink:0}
 <body>
 <div class="card">
   <div class="shield">🛡️</div>
-  <h1>Israel Alarm Risk Analyzer</h1>
+  <h1>Israel Navigation Risk Analyzer</h1>
   <span class="sub">Route risk mapping based on real-time<br>Pikud HaOref alarm records</span>
   <span class="badge">2026 Live Data</span>
   %%BUTTONS%%
