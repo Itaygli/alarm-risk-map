@@ -616,6 +616,24 @@
     /* ══════════════════════════════════════════
        MOBILE  ≤ 640 px
     ══════════════════════════════════════════ */
+    /* ══ RTL (Hebrew) overrides ══ */
+    [dir="rtl"] .route-bar { direction: rtl; }
+    [dir="rtl"] .dot-col { order: 1; }
+    [dir="rtl"] .inputs-col { order: 0; }
+    [dir="rtl"] .inp-row { flex-direction: row-reverse; }
+    [dir="rtl"] .clear-inp,
+    [dir="rtl"] .swap-btn,
+    [dir="rtl"] .loc-btn { order: -1; }
+    [dir="rtl"] .toggle-row { flex-direction: row-reverse; }
+    [dir="rtl"] .legend-row { flex-direction: row-reverse; }
+    [dir="rtl"] .data-row { flex-direction: row-reverse; }
+    [dir="rtl"] input { text-align: right; }
+    [dir="rtl"] .stats-grid { direction: rtl; }
+    [dir="rtl"] .sec-title { text-align: right; }
+    [dir="rtl"] .header-left { flex-direction: row-reverse; }
+    [dir="rtl"] .disclaimer { text-align: right; }
+    [dir="rtl"] .nav-btns { direction: rtl; }
+
     @media (max-width: 640px) {
       /* Map fills the whole viewport */
       .main { position: relative; overflow: visible; }
@@ -681,10 +699,10 @@
   <div class="header-left">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
     <div>
-      <h1>Navigate Smart. Stay Out of Range.</h1>
-      <span class="sub">Route risk based on 2026 Pikud HaOref alarm records</span>
+      <h1 data-i18n="title">Navigate Smart. Stay Out of Range.</h1>
+      <span class="sub" data-i18n="subtitle">Route risk based on 2026 Pikud HaOref alarm records</span>
     </div>
-    <span class="badge"><span class="live-dot" id="hdr-dot"></span>2026 Live Data</span>
+    <span class="badge"><span class="live-dot" id="hdr-dot"></span><span data-i18n="liveData">2026 Live Data</span></span>
   </div>
   <div style="display:flex;align-items:center;gap:18px">
     <span id="hdr-status" style="font-size:12px;color:var(--muted)"></span>
@@ -695,7 +713,7 @@
 <div id="mob-backdrop" onclick="closeMobileSidebar()"></div>
 <div id="mob-fab" onclick="openMobileWithFocus()" role="button" aria-label="Search destination">
   <span class="fab-icon">🔍</span>
-  <span class="fab-text">Where to?</span>
+  <span class="fab-text" data-i18n="whereToFab">Where to?</span>
 </div>
 
 <!-- MAIN -->
@@ -710,7 +728,7 @@
 
     <!-- Route planning (Google Maps–style) -->
     <div class="sec">
-      <div class="sec-title">Route Planning</div>
+      <div class="sec-title" data-i18n="routePlan">Route Planning</div>
 
       <div class="route-bar">
         <!-- Dot column (green ● ┆ red ●) -->
@@ -723,12 +741,12 @@
         <!-- Input column -->
         <div class="inputs-col">
           <div class="inp-row">
-            <input id="inp-origin" type="text" placeholder="Your location" autocomplete="off" />
+            <input id="inp-origin" type="text" data-i18n="originPH" placeholder="Your location" autocomplete="off" />
             <button class="clear-inp" onclick="clearInput('origin')" title="Clear">✕</button>
             <button class="loc-btn" onclick="detectLocation()" title="Use my location">◎</button>
           </div>
           <div class="inp-row">
-            <input id="inp-dest" type="text" placeholder="Choose destination" autocomplete="off" />
+            <input id="inp-dest" type="text" data-i18n="destPH" placeholder="Choose destination" autocomplete="off" />
             <button class="clear-inp" onclick="clearInput('dest')" title="Clear">✕</button>
             <button class="swap-btn" onclick="swapPoints()" title="Swap origin &amp; destination">⇅</button>
           </div>
@@ -736,14 +754,14 @@
       </div>
 
       <div class="time-row">
-        <label>🕐 Depart</label>
+        <label>🕐 <span data-i18n="travelDate">Depart</span></label>
         <input id="inp-time" type="datetime-local" />
       </div>
 
-      <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()">Navigate</button>
+      <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()" data-i18n="navigate">Navigate</button>
       <!-- Navigation buttons (shown after route calculation) -->
       <div id="nav-btns" style="display:none;margin-top:6px">
-        <div class="sec-title" style="margin-bottom:6px">Go now</div>
+        <div class="sec-title" style="margin-bottom:6px" data-i18n="goNow">Go now</div>
         <div class="nav-btns show">
           <a class="nav-link nav-waze" id="nav-waze" href="#" target="_blank" rel="noopener">
             🗺️ Waze
@@ -756,7 +774,7 @@
 
       <div class="status-bar">
         <div class="live-dot" id="status-dot"></div>
-        <span id="status-text">Ready — enter origin and destination</span>
+        <span id="status-text" data-i18n="readyBoth">Ready — enter origin and destination</span>
       </div>
 
       <!-- Risk assessment (inline — appears after route is calculated) -->
@@ -764,7 +782,7 @@
         <div class="risk-circle-wrap">
           <div class="risk-circle" id="risk-circle">
             <div class="risk-pct" id="risk-pct">0%</div>
-            <div class="risk-sub">avg risk</div>
+            <div class="risk-sub" data-i18n="avgRisk">avg risk</div>
           </div>
           <div class="risk-level" id="risk-level">—</div>
           <div class="risk-desc" id="risk-desc">—</div>
@@ -773,7 +791,7 @@
         <!-- Route risk gradient bar -->
         <div style="margin-top:12px">
           <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-bottom:4px">
-            <span>Origin</span><span>Destination</span>
+            <span data-i18n="origin">Origin</span><span data-i18n="destination">Destination</span>
           </div>
           <div id="seg-bar" style="height:10px;border-radius:5px;overflow:hidden;background:var(--card)"></div>
         </div>
@@ -781,34 +799,34 @@
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-val" id="s-dist">—</div>
-            <div class="stat-name">Distance</div>
+            <div class="stat-name" data-i18n="distance">Distance</div>
           </div>
           <div class="stat-card">
             <div class="stat-val" id="s-dur">—</div>
-            <div class="stat-name">Duration</div>
+            <div class="stat-name" data-i18n="duration">Duration</div>
           </div>
           <div class="stat-card">
             <div class="stat-val" id="s-zones">—</div>
-            <div class="stat-name">Risk Zones</div>
+            <div class="stat-name" data-i18n="riskZones">Risk Zones</div>
           </div>
           <div class="stat-card">
             <div class="stat-val" id="s-max">—</div>
-            <div class="stat-name">Peak Risk</div>
+            <div class="stat-name" data-i18n="peakRisk">Peak Risk</div>
           </div>
         </div>
 
         <!-- Alternate safer route banner -->
         <div class="alt-banner" id="alt-banner">
-          <div class="alt-banner-title" id="alt-banner-title">🛡️ Safer route available</div>
+          <div class="alt-banner-title" id="alt-banner-title" data-i18n="saferAvail">🛡️ Safer route available</div>
           <div class="alt-banner-body" id="alt-body"></div>
-          <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()">Switch to safer route</button>
+          <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()" data-i18n="switchSafer">Switch to safer route</button>
         </div>
       </div>
     </div>
 
     <!-- Data Source -->
     <div class="sec">
-      <div class="sec-title">2026 Alarm Data — Pikud HaOref</div>
+      <div class="sec-title" data-i18n="alarmData">2026 Alarm Data — Pikud HaOref</div>
 
       <!-- Loading state -->
       <div id="ds-loading" class="data-msg">
@@ -820,25 +838,25 @@
       <div id="ds-loaded" style="display:none">
         <div class="data-row">
           <span class="data-val" id="ds-total">—</span>
-          <span class="data-lbl">Rocket/missile alarms</span>
+          <span class="data-lbl" data-i18n="rocketAlarms">Rocket/missile alarms</span>
         </div>
         <div class="data-row">
           <span class="data-val" id="ds-cities">—</span>
-          <span class="data-lbl">Cities / areas hit</span>
+          <span class="data-lbl" data-i18n="citiesHit">Cities / areas hit</span>
         </div>
         <div class="data-row" style="margin-bottom:10px">
           <span style="font-size:11px;color:var(--muted)" id="ds-range">—</span>
           <span class="data-lbl">Period</span>
         </div>
         <div id="ds-top-wrap">
-          <div class="sec-title" style="margin-bottom:5px">Most Targeted</div>
+          <div class="sec-title" style="margin-bottom:5px" data-i18n="mostTargeted">Most Targeted</div>
           <div id="ds-top"></div>
         </div>
       </div>
 
       <!-- Source breakdown (shown when loaded) -->
       <div id="ds-sources" style="display:none;margin-top:10px">
-        <div class="sec-title" style="margin-bottom:5px">Threat Sources</div>
+        <div class="sec-title" style="margin-bottom:5px" data-i18n="threatSrc">Threat Sources</div>
         <div id="ds-source-list"></div>
       </div>
 
@@ -851,42 +869,42 @@
       <div id="ds-error" class="data-err" style="display:none"></div>
 
       <button class="btn btn-secondary" style="font-size:11px;padding:6px;margin-top:10px"
-              onclick="loadAlarmHistory()">↻ Refresh</button>
+              onclick="loadAlarmHistory()" data-i18n="refresh">↻ Refresh</button>
     </div>
 
     <!-- Layer controls -->
     <div class="sec">
-      <div class="sec-title">Map Layers</div>
+      <div class="sec-title" data-i18n="mapLayers">Map Layers</div>
       <div class="toggle-row">
-        <span>2026 Alarm Heatmap</span>
+        <span data-i18n="heatmapLbl">2026 Alarm Heatmap</span>
         <label class="toggle">
           <input type="checkbox" id="tog-heat" checked onchange="toggleLayer('heat')" />
           <span class="tslider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span>City Labels</span>
+        <span data-i18n="cityLabels">City Labels</span>
         <label class="toggle">
           <input type="checkbox" id="tog-cities" checked onchange="toggleLayer('cities')" />
           <span class="tslider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span>Confirmed Hit Sites</span>
+        <span data-i18n="hitSites">Confirmed Hit Sites</span>
         <label class="toggle">
           <input type="checkbox" id="tog-hits" checked onchange="toggleLayer('hits')" />
           <span class="tslider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span>🏛️ Public Shelters (zoom in)</span>
+        <span data-i18n="sheltersLbl">🏛️ Public Shelters (zoom in)</span>
         <label class="toggle">
           <input type="checkbox" id="tog-shelters" checked onchange="toggleLayer('shelters')" />
           <span class="tslider"></span>
         </label>
       </div>
       <div class="toggle-row">
-        <span>Color-coded Route</span>
+        <span data-i18n="colorRoute">Color-coded Route</span>
         <label class="toggle">
           <input type="checkbox" id="tog-colorroute" checked />
           <span class="tslider"></span>
@@ -896,39 +914,39 @@
 
     <!-- Legend -->
     <div class="sec">
-      <div class="sec-title">Heatmap — Alarm Frequency</div>
+      <div class="sec-title" data-i18n="heatLegend">Heatmap — Alarm Frequency</div>
       <div class="legend-row">
         <div class="leg-color" style="background:linear-gradient(to right,#0055ff,#00aaff)"></div>
-        <span>Very few alarms</span>
+        <span data-i18n="veryFew">Very few alarms</span>
       </div>
       <div class="legend-row">
         <div class="leg-color" style="background:linear-gradient(to right,#00aaff,#00ffaa)"></div>
-        <span>Low frequency</span>
+        <span data-i18n="lowFreq">Low frequency</span>
       </div>
       <div class="legend-row">
         <div class="leg-color" style="background:linear-gradient(to right,#00ffaa,#aaff00)"></div>
-        <span>Moderate frequency</span>
+        <span data-i18n="modFreq">Moderate frequency</span>
       </div>
       <div class="legend-row">
         <div class="leg-color" style="background:linear-gradient(to right,#aaff00,#ffcc00)"></div>
-        <span>High frequency</span>
+        <span data-i18n="highFreq">High frequency</span>
       </div>
       <div class="legend-row">
         <div class="leg-color" style="background:linear-gradient(to right,#ffcc00,#ff4400)"></div>
-        <span>Very high / Extreme</span>
+        <span data-i18n="vhighFreq">Very high / Extreme</span>
       </div>
 
       <div style="margin-top:13px">
-        <div class="sec-title" style="margin-bottom:7px">Route Risk Colors</div>
-        <div class="legend-row"><div class="leg-color" style="background:#00c853"></div><span>Safe (0–20%)</span></div>
-        <div class="legend-row"><div class="leg-color" style="background:#ffd700"></div><span>Low risk (20–40%)</span></div>
-        <div class="legend-row"><div class="leg-color" style="background:#ff8c00"></div><span>Medium risk (40–60%)</span></div>
-        <div class="legend-row"><div class="leg-color" style="background:#ff4444"></div><span>High risk (60–80%)</span></div>
-        <div class="legend-row"><div class="leg-color" style="background:#cc0000"></div><span>Extreme risk (80–100%)</span></div>
+        <div class="sec-title" style="margin-bottom:7px" data-i18n="riskColors">Route Risk Colors</div>
+        <div class="legend-row"><div class="leg-color" style="background:#00c853"></div><span data-i18n="safe020">Safe (0–20%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#ffd700"></div><span data-i18n="low2040">Low risk (20–40%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#ff8c00"></div><span data-i18n="med4060">Medium risk (40–60%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#ff4444"></div><span data-i18n="high6080">High risk (60–80%)</span></div>
+        <div class="legend-row"><div class="leg-color" style="background:#cc0000"></div><span data-i18n="ext80100">Extreme risk (80–100%)</span></div>
       </div>
     </div>
 
-    <div class="disclaimer">
+    <div class="disclaimer" data-i18n="disclaimer">
       ⚠️ Data fetched live from Pikud HaOref (IDF Home Front Command). For educational and planning purposes only — does not replace real-time emergency instructions. Always follow official alerts.
     </div>
 
@@ -939,10 +957,10 @@
     <div id="map"></div>
     <div id="loading">
       <div class="spinner"></div>
-      <div style="font-size:13px">Calculating route…</div>
+      <div style="font-size:13px" data-i18n="calcRoute">Calculating route…</div>
     </div>
     <div class="map-hint">
-      💡 Type locations above, or click the map to set waypoints
+      <span data-i18n="mapHint">💡 Type locations above, or click the map to set waypoints</span>
     </div>
   </div>
 
@@ -1666,6 +1684,143 @@ let RISK_NORM   = 1; // set dynamically after data loads
 let HIT_NORM    = 1; // max raw hit score at any hit epicentre
 
 // ═══════════════════════════════════════════════
+//  i18n — Hebrew when user IP is in Israel
+// ═══════════════════════════════════════════════
+const USER_COUNTRY = document.querySelector('meta[name="user-country"]')?.content || 'US';
+const IS_HE = USER_COUNTRY === 'IL';
+
+const STRINGS = {
+  // Header
+  title:       { en: 'Navigate Smart. Stay Out of Range.',    he: 'נווט בחוכמה. הישאר מחוץ לטווח.' },
+  subtitle:    { en: 'Route risk based on 2026 Pikud HaOref alarm records', he: 'סיכון מסלול לפי נתוני התרעות פיקוד העורף 2026' },
+  liveData:    { en: '2026 Live Data', he: 'נתונים חיים 2026' },
+
+  // Route planning
+  routePlan:   { en: 'Route Planning', he: 'תכנון מסלול' },
+  originPH:    { en: 'Origin / start location', he: 'מוצא / נקודת התחלה' },
+  destPH:      { en: 'Destination', he: 'יעד' },
+  travelDate:  { en: 'Travel Date & Time', he: 'תאריך ושעת נסיעה' },
+  navigate:    { en: 'Navigate', he: 'נווט' },
+  goNow:       { en: 'Go now', he: 'צא לדרך' },
+  whereToFab:  { en: 'Where to?', he: 'לאן?' },
+
+  // Status bar
+  readyBoth:   { en: 'Ready — enter origin and destination', he: 'מוכן — הזן מוצא ויעד' },
+  originSet:   { en: 'Origin set — enter destination',       he: 'מוצא נקבע — הזן יעד' },
+  destSet:     { en: 'Destination set — enter origin',       he: 'יעד נקבע — הזן מוצא' },
+  bothSet:     { en: 'Both points set — click Calculate',    he: 'שתי הנקודות נקבעו — לחץ נווט' },
+
+  // Risk assessment
+  avgRisk:     { en: 'avg risk', he: 'סיכון ממוצע' },
+  distance:    { en: 'Distance', he: 'מרחק' },
+  duration:    { en: 'Duration', he: 'משך נסיעה' },
+  riskZones:   { en: 'Risk Zones', he: 'אזורי סיכון' },
+  peakRisk:    { en: 'Peak Risk', he: 'סיכון שיא' },
+  origin:      { en: 'Origin',  he: 'מוצא' },
+  destination: { en: 'Destination', he: 'יעד' },
+
+  // Risk levels
+  veryLow:     { en: 'Very Low Risk',   he: 'סיכון נמוך מאוד' },
+  low:         { en: 'Low Risk',        he: 'סיכון נמוך' },
+  moderate:    { en: 'Moderate Risk',   he: 'סיכון בינוני' },
+  high:        { en: 'High Risk',       he: 'סיכון גבוה' },
+  veryHigh:    { en: 'Very High Risk',  he: 'סיכון גבוה מאוד' },
+  extreme:     { en: 'Extreme Risk',    he: 'סיכון קיצוני' },
+
+  // Risk descriptions
+  descVeryLow: { en: 'Route mostly through areas with no 2026 alarms.', he: 'המסלול עובר בעיקר באזורים ללא התרעות ב-2026.' },
+  descLow:     { en: 'Route near areas with few 2026 alarms.',         he: 'המסלול קרוב לאזורים עם מעט התרעות ב-2026.' },
+  descMod:     { en: 'Route passes through moderately affected areas.', he: 'המסלול עובר באזורים מושפעים בינוני.' },
+  descHigh:    { en: 'Route crosses multiple alarm zones from 2026.',   he: 'המסלול חוצה מספר אזורי התרעה מ-2026.' },
+  descVHigh:   { en: 'Route through heavily targeted areas — take precautions.', he: 'המסלול עובר באזורים מותקפים בכבדות — נקוט אמצעי זהירות.' },
+  descExtreme: { en: 'Route through the most targeted zones in 2026.',  he: 'המסלול עובר באזורים המותקפים ביותר ב-2026.' },
+
+  // Alt route / safety
+  saferAvail:   { en: '🛡️ Safer route available',       he: '🛡️ קיים מסלול בטוח יותר' },
+  avoidRoute:   { en: '⚠️ Avoid this route',             he: '⚠️ הימנע ממסלול זה' },
+  switchSafer:  { en: 'Switch to safer route',            he: 'עבור למסלול בטוח יותר' },
+  switchSafest: { en: 'Switch to safest route',           he: 'עבור למסלול הבטוח ביותר' },
+  postponeTravel: { en: 'Consider postponing travel or using a shelter-to-shelter plan.', he: 'שקול לדחות את הנסיעה או להשתמש בתכנית מקלט-למקלט.' },
+
+  // Data source section
+  alarmData:    { en: '2026 Alarm Data — Pikud HaOref', he: 'נתוני התרעות 2026 — פיקוד העורף' },
+  rocketAlarms: { en: 'Rocket/missile alarms', he: 'התרעות טילים/רקטות' },
+  citiesHit:    { en: 'Cities / areas hit', he: 'ערים / אזורים שנפגעו' },
+  mostTargeted: { en: 'Most Targeted', he: 'המותקפים ביותר' },
+  threatSrc:    { en: 'Threat Sources', he: 'מקורות איום' },
+  refresh:      { en: '↻ Refresh', he: '↻ רענון' },
+  alarmsLoaded: { en: 'alarms loaded', he: 'התרעות נטענו' },
+  noAlarms:     { en: 'No 2026 alarms found', he: 'לא נמצאו התרעות ב-2026' },
+  loadFailed:   { en: 'Data load failed — click Refresh to retry', he: 'טעינת נתונים נכשלה — לחץ רענון לניסיון חוזר' },
+  offlineMsg:   { en: 'Alarm API offline — confirmed hits shown', he: 'API התרעות לא זמין — מוצגות פגיעות מאושרות' },
+  offlineBody:  { en: 'Live alarm data unavailable — map shows confirmed hit sites only.', he: 'נתוני התרעות לא זמינים — המפה מציגה אתרי פגיעה מאושרים בלבד.' },
+
+  // Map layers
+  mapLayers:    { en: 'Map Layers', he: 'שכבות מפה' },
+  heatmapLbl:   { en: '2026 Alarm Heatmap', he: 'מפת חום התרעות 2026' },
+  cityLabels:   { en: 'City Labels', he: 'שמות ערים' },
+  hitSites:     { en: 'Confirmed Hit Sites', he: 'אתרי פגיעה מאושרים' },
+  sheltersLbl:  { en: '🏛️ Public Shelters (zoom in)', he: '🏛️ מקלטים ציבוריים (התקרב)' },
+  colorRoute:   { en: 'Color-coded Route', he: 'מסלול מקודד צבע' },
+
+  // Legend
+  heatLegend:   { en: 'Heatmap — Alarm Frequency', he: 'מפת חום — תדירות התרעות' },
+  veryFew:      { en: 'Very few alarms', he: 'מעט מאוד התרעות' },
+  lowFreq:      { en: 'Low frequency', he: 'תדירות נמוכה' },
+  modFreq:      { en: 'Moderate frequency', he: 'תדירות בינונית' },
+  highFreq:     { en: 'High frequency', he: 'תדירות גבוהה' },
+  vhighFreq:    { en: 'Very high / Extreme', he: 'גבוהה מאוד / קיצונית' },
+  riskColors:   { en: 'Route Risk Colors', he: 'צבעי סיכון מסלול' },
+  safe020:      { en: 'Safe (0–20%)', he: 'בטוח (0–20%)' },
+  low2040:      { en: 'Low risk (20–40%)', he: 'סיכון נמוך (20–40%)' },
+  med4060:      { en: 'Medium risk (40–60%)', he: 'סיכון בינוני (40–60%)' },
+  high6080:     { en: 'High risk (60–80%)', he: 'סיכון גבוה (60–80%)' },
+  ext80100:     { en: 'Extreme risk (80–100%)', he: 'סיכון קיצוני (80–100%)' },
+
+  // Disclaimer
+  disclaimer:   { en: '⚠️ Data fetched live from Pikud HaOref (IDF Home Front Command). For educational and planning purposes only — does not replace real-time emergency instructions. Always follow official alerts.',
+                  he: '⚠️ הנתונים נשלפים ממערכת פיקוד העורף. לצרכי חינוך ותכנון בלבד — אינו מחליף הוראות חירום בזמן אמת. יש לפעול תמיד לפי הנחיות רשמיות.' },
+
+  // Map
+  mapHint:      { en: '💡 Type locations above, or click the map to set waypoints', he: '💡 הקלד מיקומים למעלה, או לחץ על המפה לקביעת נקודות' },
+  calcRoute:    { en: 'Calculating route…', he: 'מחשב מסלול…' },
+
+  // Misc
+  confirmed:    { en: 'Confirmed Hit', he: 'פגיעה מאושרת' },
+  severity:     { en: 'Severity', he: 'חומרה' },
+  setOriginDest:{ en: 'Set both origin and destination.', he: 'הגדר מוצא ויעד.' },
+};
+
+function t(key) {
+  const s = STRINGS[key];
+  if (!s) return key;
+  return IS_HE ? s.he : s.en;
+}
+
+// Apply Hebrew RTL + translate all data-i18n elements on page load
+function applyI18n() {
+  if (!IS_HE) return;
+  // Set RTL on body
+  document.documentElement.lang = 'he';
+  document.documentElement.dir = 'rtl';
+  document.body.style.direction = 'rtl';
+
+  // Translate all elements with data-i18n attribute
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    const val = t(key);
+    if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+      el.placeholder = val;
+    } else {
+      el.textContent = val;
+    }
+  });
+
+  // Title
+  document.title = t('title');
+}
+
+// ═══════════════════════════════════════════════
 //  THREAT SOURCE INFERENCE
 //  Category 13/14 = ballistic (Iran / Houthi)  → 3.0×
 //  Category  1 + north target (lat ≥ 32.5)     → Hezbollah 1.8×
@@ -1997,8 +2152,8 @@ async function loadAlarmHistory() {
         computeRiskNorm();
         rebuildHeatmap();
         showDataState('empty');
-        document.getElementById('ds-empty').textContent = j.msg || 'Live alarm data unavailable — map shows confirmed hit sites only.';
-        document.getElementById('hdr-status').textContent = 'Alarm API offline — confirmed hits shown';
+        document.getElementById('ds-empty').textContent = j.msg || t('offlineBody');
+        document.getElementById('hdr-status').textContent = t('offlineMsg');
         return;
       }
       raw = j;
@@ -2015,7 +2170,7 @@ async function loadAlarmHistory() {
 
     if (!raw.length) {
       showDataState('empty');
-      document.getElementById('hdr-status').textContent = 'No 2026 alarms found';
+      document.getElementById('hdr-status').textContent = t('noAlarms');
       liveAlarms = [];
       rebuildHeatmap();
       return;
@@ -2083,7 +2238,7 @@ async function loadAlarmHistory() {
     });
 
     document.getElementById('hdr-status').textContent =
-      `${rockets.length.toLocaleString()} alarms loaded`;
+      `${rockets.length.toLocaleString()} ${t('alarmsLoaded')}`;
     document.getElementById('hdr-dot').style.background = 'var(--green)';
 
   } catch (err) {
@@ -2092,7 +2247,7 @@ async function loadAlarmHistory() {
       ? 'Pikud HaOref API blocked browser requests (CORS). Try opening from a server, or click Refresh.'
       : err.message;
     showDataState('error', msg);
-    document.getElementById('hdr-status').textContent = 'Data load failed — click Refresh to retry';
+    document.getElementById('hdr-status').textContent = t('loadFailed');
     document.getElementById('hdr-dot').style.background = 'var(--red)';
     liveAlarms = [];
     rebuildHeatmap();
@@ -2200,6 +2355,9 @@ function computeRiskNorm() {
 //  INIT
 // ═══════════════════════════════════════════════
 function init() {
+  // Apply Hebrew i18n if user is in Israel
+  applyI18n();
+
   map = L.map('map', { center: [31.8, 34.9], zoom: 8, zoomControl: false });
 
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
@@ -2353,10 +2511,10 @@ function makeMarker(ll, color, tip) {
 
 function refreshStatus() {
   const el = document.getElementById('status-text');
-  if (!latlngOrigin && !latlngDest) el.textContent = 'Ready — enter origin and destination';
-  else if (latlngOrigin && !latlngDest) el.textContent = 'Origin set — enter destination';
-  else if (!latlngOrigin && latlngDest) el.textContent = 'Destination set — enter origin';
-  else el.textContent = 'Both points set — click Calculate';
+  if (!latlngOrigin && !latlngDest) el.textContent = t('readyBoth');
+  else if (latlngOrigin && !latlngDest) el.textContent = t('originSet');
+  else if (!latlngOrigin && latlngDest) el.textContent = t('destSet');
+  else el.textContent = t('bothSet');
 }
 
 // ═══════════════════════════════════════════════
@@ -2469,7 +2627,7 @@ function swapPoints() {
 let pendingAltRoute = null;
 
 async function doCalculate() {
-  if (!latlngOrigin || !latlngDest) { alert('Set both origin and destination.'); return; }
+  if (!latlngOrigin || !latlngDest) { alert(t('setOriginDest')); return; }
   setLoading(true);
   setStatus('Fetching route…');
   pendingAltRoute = null;
@@ -2508,9 +2666,10 @@ async function doCalculate() {
     if (primary.risk.avg >= 0.75) {
       // EXTREME risk — warn to avoid driving entirely
       banner.className = 'alt-banner danger show';
-      document.getElementById('alt-banner-title').innerHTML = '⚠️ Avoid this route';
-      let body = `Risk level is <b style="color:var(--red)">${pPct}%</b> — this route passes through ` +
-        `heavily targeted zones.<br><b>Consider postponing travel or using a shelter-to-shelter plan.</b>`;
+      document.getElementById('alt-banner-title').innerHTML = t('avoidRoute');
+      let body = IS_HE
+        ? `רמת הסיכון <b style="color:var(--red)">${pPct}%</b> — המסלול עובר באזורים מותקפים בכבדות.<br><b>${t('postponeTravel')}</b>`
+        : `Risk level is <b style="color:var(--red)">${pPct}%</b> — this route passes through heavily targeted zones.<br><b>${t('postponeTravel')}</b>`;
 
       // Still check for a safer alt
       if (scored.length > 1) {
@@ -2521,8 +2680,10 @@ async function doCalculate() {
           pendingAltRoute = safest;
           const sPct = Math.round(safest.risk.avg * 100);
           const sDist = (safest.route.distance / 1000).toFixed(1);
-          body += `<br><br>Safest alternative: <b style="color:var(--yellow)">${sPct}%</b> risk · ${sDist} km`;
-          document.getElementById('alt-btn').textContent = 'Switch to safest route';
+          body += IS_HE
+            ? `<br><br>חלופה בטוחה יותר: <b style="color:var(--yellow)">${sPct}%</b> סיכון · ${sDist} ק"מ`
+            : `<br><br>Safest alternative: <b style="color:var(--yellow)">${sPct}%</b> risk · ${sDist} km`;
+          document.getElementById('alt-btn').textContent = t('switchSafest');
           document.getElementById('alt-btn').style.display = '';
           drawAltPreview(safest.coords);
         } else {
@@ -2547,13 +2708,17 @@ async function doCalculate() {
         const sDurF = sDur >= 60 ? `${Math.floor(sDur/60)}h ${sDur%60}m` : `${sDur}m`;
 
         banner.className = 'alt-banner safer show';
-        document.getElementById('alt-banner-title').innerHTML = '🛡️ Safer route available';
-        document.getElementById('alt-body').innerHTML =
-          `Current route risk: <b>${pPct}%</b><br>` +
-          `Safer route risk: <b style="color:var(--green)">${sPct}%</b> ` +
-          `(−${Math.round(reduction * 100)}%)<br>` +
-          `Distance: <b>${sDist} km</b> · Duration: <b>${sDurF}</b>`;
-        document.getElementById('alt-btn').textContent = 'Switch to safer route';
+        document.getElementById('alt-banner-title').innerHTML = t('saferAvail');
+        document.getElementById('alt-body').innerHTML = IS_HE
+          ? `סיכון מסלול נוכחי: <b>${pPct}%</b><br>` +
+            `מסלול בטוח יותר: <b style="color:var(--green)">${sPct}%</b> ` +
+            `(−${Math.round(reduction * 100)}%)<br>` +
+            `מרחק: <b>${sDist} ק"מ</b> · משך: <b>${sDurF}</b>`
+          : `Current route risk: <b>${pPct}%</b><br>` +
+            `Safer route risk: <b style="color:var(--green)">${sPct}%</b> ` +
+            `(−${Math.round(reduction * 100)}%)<br>` +
+            `Distance: <b>${sDist} km</b> · Duration: <b>${sDurF}</b>`;
+        document.getElementById('alt-btn').textContent = t('switchSafer');
         document.getElementById('alt-btn').style.display = '';
         drawAltPreview(safest.coords);
       }
@@ -2686,12 +2851,12 @@ function updateUI(risk, distM, durS) {
   const maxPct = Math.round(risk.max * 100);
 
   let col, lv, desc;
-  if      (pct < 10) { col='#00c853'; lv='Very Low Risk';   desc='Route mostly through areas with no 2026 alarms.'; }
-  else if (pct < 25) { col='#7cb342'; lv='Low Risk';        desc='Route near areas with few 2026 alarms.'; }
-  else if (pct < 40) { col='#ffd700'; lv='Moderate Risk';   desc='Route passes through moderately affected areas.'; }
-  else if (pct < 58) { col='#ff8c00'; lv='High Risk';       desc='Route crosses multiple alarm zones from 2026.'; }
-  else if (pct < 75) { col='#ff4444'; lv='Very High Risk';  desc='Route through heavily targeted areas — take precautions.'; }
-  else               { col='#cc0000'; lv='Extreme Risk';    desc='Route through the most targeted zones in 2026.'; }
+  if      (pct < 10) { col='#00c853'; lv=t('veryLow');  desc=t('descVeryLow'); }
+  else if (pct < 25) { col='#7cb342'; lv=t('low');      desc=t('descLow'); }
+  else if (pct < 40) { col='#ffd700'; lv=t('moderate'); desc=t('descMod'); }
+  else if (pct < 58) { col='#ff8c00'; lv=t('high');     desc=t('descHigh'); }
+  else if (pct < 75) { col='#ff4444'; lv=t('veryHigh'); desc=t('descVHigh'); }
+  else               { col='#cc0000'; lv=t('extreme');  desc=t('descExtreme'); }
 
   const circle = document.getElementById('risk-circle');
   circle.style.borderColor = col;
@@ -2773,7 +2938,7 @@ function closeMobileSidebar() {
   const fab = document.getElementById('mob-fab');
   fab.classList.remove('is-open');
   fab.querySelector('.fab-icon').textContent = '🔍';
-  fab.querySelector('.fab-text').textContent = 'Where to?';
+  fab.querySelector('.fab-text').textContent = t('whereToFab');
   fab.onclick = openMobileWithFocus;
 }
 function openMobileWithFocus() {

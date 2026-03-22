@@ -85,6 +85,9 @@ def index():
     html_path = os.path.join(app.static_folder, 'index.html')
     with open(html_path, 'r', encoding='utf-8') as f:
         html = f.read()
+    # Inject user country code from Vercel's geo header (or fallback)
+    country = request.headers.get('x-vercel-ip-country', 'US')
+    html = html.replace('</head>', f'  <meta name="user-country" content="{country}" />\n</head>', 1)
     resp = make_response(html)
     resp.headers['Content-Type'] = 'text/html; charset=utf-8'
     resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
