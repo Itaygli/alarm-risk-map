@@ -693,6 +693,47 @@
         <div class="live-dot" id="status-dot"></div>
         <span id="status-text">Ready — enter origin and destination</span>
       </div>
+
+      <!-- Risk assessment (inline — appears after route is calculated) -->
+      <div id="risk-content" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
+        <div class="risk-circle-wrap">
+          <div class="risk-circle" id="risk-circle">
+            <div class="risk-pct" id="risk-pct">0%</div>
+            <div class="risk-sub">avg risk</div>
+          </div>
+          <div class="risk-level" id="risk-level">—</div>
+          <div class="risk-desc" id="risk-desc">—</div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-val" id="s-dist">—</div>
+            <div class="stat-name">Distance</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="s-dur">—</div>
+            <div class="stat-name">Duration</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="s-zones">—</div>
+            <div class="stat-name">Risk Zones</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-val" id="s-max">—</div>
+            <div class="stat-name">Peak Risk</div>
+          </div>
+        </div>
+        <!-- Alternate safer route banner -->
+        <div class="alt-banner" id="alt-banner">
+          <div class="alt-banner-title">🛡️ Safer route available</div>
+          <div class="alt-banner-body" id="alt-body"></div>
+          <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()">Switch to safer route</button>
+        </div>
+
+        <div style="margin-top:12px">
+          <div class="sec-title" style="margin-bottom:8px">Route Segments</div>
+          <div id="seg-list"></div>
+        </div>
+      </div>
     </div>
 
     <!-- Data Source -->
@@ -741,54 +782,6 @@
 
       <button class="btn btn-secondary" style="font-size:11px;padding:6px;margin-top:10px"
               onclick="loadAlarmHistory()">↻ Refresh</button>
-    </div>
-
-    <!-- Risk assessment -->
-    <div class="sec">
-      <div class="sec-title">Risk Assessment</div>
-      <div id="risk-placeholder" class="risk-placeholder">
-        <div class="icon">📍</div>
-        Plan a route to see risk analysis
-      </div>
-      <div id="risk-content" style="display:none">
-        <div class="risk-circle-wrap">
-          <div class="risk-circle" id="risk-circle">
-            <div class="risk-pct" id="risk-pct">0%</div>
-            <div class="risk-sub">avg risk</div>
-          </div>
-          <div class="risk-level" id="risk-level">—</div>
-          <div class="risk-desc" id="risk-desc">—</div>
-        </div>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-val" id="s-dist">—</div>
-            <div class="stat-name">Distance</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val" id="s-dur">—</div>
-            <div class="stat-name">Duration</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val" id="s-zones">—</div>
-            <div class="stat-name">Risk Zones</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-val" id="s-max">—</div>
-            <div class="stat-name">Peak Risk</div>
-          </div>
-        </div>
-        <!-- Alternate safer route banner -->
-        <div class="alt-banner" id="alt-banner">
-          <div class="alt-banner-title">🛡️ Safer route available</div>
-          <div class="alt-banner-body" id="alt-body"></div>
-          <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()">Switch to safer route</button>
-        </div>
-
-        <div style="margin-top:12px">
-          <div class="sec-title" style="margin-bottom:8px">Route Segments</div>
-          <div id="seg-list"></div>
-        </div>
-      </div>
     </div>
 
     <!-- Layer controls -->
@@ -2451,7 +2444,6 @@ function drawRoute(coords, pts) {
 //  UPDATE SIDEBAR UI
 // ═══════════════════════════════════════════════
 function updateUI(risk, distM, durS) {
-  document.getElementById('risk-placeholder').style.display = 'none';
   document.getElementById('risk-content').style.display = 'block';
 
   const pct    = Math.round(risk.avg * 100);
@@ -2524,8 +2516,7 @@ function doClear() {
   document.getElementById('alt-banner').classList.remove('show');
   document.getElementById('inp-origin').value = '';
   document.getElementById('inp-dest').value   = '';
-  document.getElementById('risk-placeholder').style.display = 'block';
-  document.getElementById('risk-content').style.display     = 'none';
+  document.getElementById('risk-content').style.display = 'none';
   refreshStatus();
   map.setView([31.8, 34.9], 8);
 }
