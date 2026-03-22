@@ -460,26 +460,24 @@
     #mob-fab {
       display: none;
       position: fixed;
-      bottom: 22px;
-      left: 50%;
-      transform: translateX(-50%);
+      bottom: 24px;
+      right: 18px;
       z-index: 950;
       background: var(--blue);
       color: #fff;
       border: none;
-      border-radius: 24px;
-      padding: 13px 26px;
-      font-size: 15px;
-      font-weight: 600;
+      border-radius: 50%;
+      width: 56px;
+      height: 56px;
+      font-size: 24px;
       font-family: inherit;
       cursor: pointer;
-      box-shadow: 0 4px 20px rgba(0,0,0,.65);
+      box-shadow: 0 4px 16px rgba(0,0,0,.55);
       align-items: center;
-      gap: 9px;
-      white-space: nowrap;
+      justify-content: center;
       transition: transform .15s, box-shadow .15s;
     }
-    #mob-fab:active { transform: translateX(-50%) scale(.95); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
+    #mob-fab:active { transform: scale(.9); box-shadow: 0 2px 10px rgba(0,0,0,.5); }
 
     #mob-backdrop {
       display: none;
@@ -606,7 +604,7 @@
 
 <!-- Mobile: backdrop + FAB -->
 <div id="mob-backdrop" onclick="closeMobileSidebar()"></div>
-<button id="mob-fab" onclick="toggleMobileSidebar()">☰&nbsp; Panel</button>
+<button id="mob-fab" onclick="toggleMobileSidebar()" aria-label="Navigation panel">🧭</button>
 
 <!-- MAIN -->
 <div class="main">
@@ -2425,12 +2423,12 @@ function doClear() {
 function openMobileSidebar() {
   document.querySelector('.sidebar').classList.add('mob-open');
   document.getElementById('mob-backdrop').classList.add('mob-open');
-  document.getElementById('mob-fab').innerHTML = '✕&nbsp; Close';
+  document.getElementById('mob-fab').textContent = '✕';
 }
 function closeMobileSidebar() {
   document.querySelector('.sidebar').classList.remove('mob-open');
   document.getElementById('mob-backdrop').classList.remove('mob-open');
-  document.getElementById('mob-fab').innerHTML = '☰&nbsp; Panel';
+  document.getElementById('mob-fab').textContent = '🧭';
 }
 function toggleMobileSidebar() {
   document.querySelector('.sidebar').classList.contains('mob-open')
