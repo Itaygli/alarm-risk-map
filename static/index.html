@@ -2596,26 +2596,13 @@ function init() {
   // Confirmed hit markers (static dataset — always available)
   buildHitMarkers();
   buildShelterLayer();
+  initSidebarTouch();
 
   const now = new Date();
   document.getElementById('inp-time').value =
     new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
   map.on('click', e => {
-    // On mobile: collapse full sidebar to peek (or close entirely)
-    if (window.innerWidth <= 640) {
-      const sidebar = document.querySelector('.sidebar');
-      if (sidebar.classList.contains('mob-open')) {
-        // Full drawer open → collapse to peek if route active, else close
-        if (mobileRouteReady) {
-          closeMobileSidebar(); // returns to peek
-        } else {
-          closeMobileSidebar();
-        }
-        return; // don't set a waypoint when collapsing
-      }
-    }
-
     if (!latlngOrigin) {
       setPoint('origin', e.latlng, coordLabel(e.latlng));
       document.getElementById('inp-origin').value = coordLabel(e.latlng);
@@ -2624,6 +2611,17 @@ function init() {
       document.getElementById('inp-dest').value = coordLabel(e.latlng);
     }
   });
+
+  // Waze-style: any touch on the map collapses the sidebar
+  if (window.innerWidth <= 640) {
+    const mapEl = document.getElementById('map');
+    mapEl.addEventListener('touchstart', () => {
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar.classList.contains('mob-open')) {
+        closeMobileSidebar();
+      }
+    }, { passive: true });
+  }
 
   document.addEventListener('click', e => {
     if (!e.target.closest('#search-dropdown') &&
@@ -3300,11 +3298,24 @@ function toggleMobileSidebar() {
 function handleMobHandleTap() {
   const sidebar = document.querySelector('.sidebar');
   if (sidebar.classList.contains('mob-peek') && !sidebar.classList.contains('mob-open')) {
-    // In peek mode — expand to full
     openMobileSidebar();
   } else {
     closeMobileSidebar();
   }
+}
+
+// Waze-style: touching inside sidebar content expands peek → full
+function initSidebarTouch() {
+  if (window.innerWidth > 640) return;
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.addEventListener('touchstart', (e) => {
+    // If in peek mode, expand to full on any touch inside sidebar
+    if (sidebar.classList.contains('mob-peek') && !sidebar.classList.contains('mob-open')) {
+      // Don't expand if they tapped the drag handle (that toggles)
+      if (e.target.closest('.mob-handle')) return;
+      openMobileSidebar();
+    }
+  }, { passive: true });
 }
 
 function toggleLayer(which) {
