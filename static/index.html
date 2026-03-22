@@ -482,12 +482,16 @@
       <div class="live-dot" id="hdr-dot"></div>
       <span id="hdr-status">Loading alarm data…</span>
     </div>
-    <div id="user-widget" style="display:none;align-items:center;gap:9px">
+    <div id="user-widget" style="display:flex;align-items:center;gap:9px">
+      <!-- Shown when NOT logged in -->
+      <a id="sign-in-link" href="/login" style="font-size:11px;color:var(--blue);text-decoration:none;
+           border:1px solid var(--blue);border-radius:4px;padding:4px 12px">Sign in</a>
+      <!-- Shown when logged in (hidden by default) -->
       <img id="user-avatar" src="" alt="" width="28" height="28"
-           style="border-radius:50%;border:1px solid var(--border);object-fit:cover" />
-      <span id="user-name" style="font-size:12px;color:var(--muted);max-width:130px;
+           style="display:none;border-radius:50%;border:1px solid var(--border);object-fit:cover" />
+      <span id="user-name" style="display:none;font-size:12px;color:var(--muted);max-width:130px;
             overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
-      <a href="/logout" style="font-size:11px;color:var(--muted);text-decoration:none;
+      <a id="sign-out-link" href="/logout" style="display:none;font-size:11px;color:var(--muted);text-decoration:none;
            border:1px solid var(--border);border-radius:4px;padding:3px 9px">Sign out</a>
     </div>
   </div>
@@ -1902,16 +1906,17 @@ function init() {
   setupSearch('origin');
   setupSearch('dest');
 
-  // Show logged-in user in header
+  // Show logged-in user in header (or "Sign in" link if anonymous)
   fetch('/api/me').then(r => r.ok ? r.json() : null).then(u => {
-    if (!u || !u.name) return;
-    const widget = document.getElementById('user-widget');
+    if (!u || !u.name) return; // not logged in — "Sign in" link already visible
+    // Logged in: hide sign-in, show avatar + name + sign-out
+    document.getElementById('sign-in-link').style.display = 'none';
     const avatar = document.getElementById('user-avatar');
     const name   = document.getElementById('user-name');
-    if (u.avatar) avatar.src = u.avatar;
-    else avatar.style.display = 'none';
+    if (u.avatar) { avatar.src = u.avatar; avatar.style.display = ''; }
     name.textContent = u.name || u.email || '';
-    widget.style.display = 'flex';
+    name.style.display = '';
+    document.getElementById('sign-out-link').style.display = '';
   }).catch(() => {});
 
   // Kick off live data fetch

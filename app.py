@@ -80,7 +80,6 @@ def require_login(f):
 
 # ── Static / app routes ───────────────────────────────────────────────────────
 @app.route('/')
-@require_login
 def index():
     # Read file directly — avoids send_from_directory's 12-hour max-age default
     html_path = os.path.join(app.static_folder, 'index.html')
@@ -99,7 +98,7 @@ def api_me():
     if NO_AUTH:
         return jsonify({'name': 'Developer (local)', 'email': '', 'avatar': '', 'provider': 'local'})
     if 'user' not in session:
-        return jsonify({}), 401
+        return jsonify({})  # not logged in — 200 with empty body
     return jsonify(session['user'])
 
 
@@ -200,7 +199,6 @@ def _merge(existing, new_items):
 
 
 @app.route('/api/alarms')
-@require_login
 def api_alarms():
     today      = date.today().strftime('%d.%m.%Y')
     candidates = [
