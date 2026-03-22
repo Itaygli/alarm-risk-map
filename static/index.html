@@ -2602,6 +2602,20 @@ function init() {
     new Date(now - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 
   map.on('click', e => {
+    // On mobile: collapse full sidebar to peek (or close entirely)
+    if (window.innerWidth <= 640) {
+      const sidebar = document.querySelector('.sidebar');
+      if (sidebar.classList.contains('mob-open')) {
+        // Full drawer open → collapse to peek if route active, else close
+        if (mobileRouteReady) {
+          closeMobileSidebar(); // returns to peek
+        } else {
+          closeMobileSidebar();
+        }
+        return; // don't set a waypoint when collapsing
+      }
+    }
+
     if (!latlngOrigin) {
       setPoint('origin', e.latlng, coordLabel(e.latlng));
       document.getElementById('inp-origin').value = coordLabel(e.latlng);
