@@ -26,6 +26,7 @@ PORT       = int(os.environ.get('PORT', 3030))
 
 app = Flask(__name__, static_folder=os.path.join(BASE_DIR, 'static'))
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-change-before-deploying')
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # no caching for static files
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_SECURE']   = os.environ.get('RENDER') == 'true'
 
@@ -81,9 +82,15 @@ def require_login(f):
 @app.route('/')
 @require_login
 def index():
-    resp = make_response(send_from_directory(app.static_folder, 'index.html'))
-    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    # Read file directly — avoids send_from_directory's 12-hour max-age default
+    html_path = os.path.join(app.static_folder, 'index.html')
+    with open(html_path, 'r', encoding='utf-8') as f:
+        html = f.read()
+    resp = make_response(html)
+    resp.headers['Content-Type'] = 'text/html; charset=utf-8'
+    resp.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
     resp.headers['Pragma'] = 'no-cache'
+    resp.headers['Expires'] = '0'
     return resp
 
 
