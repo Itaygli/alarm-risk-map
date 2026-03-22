@@ -1507,6 +1507,16 @@ async function loadAlarmHistory() {
       if (!r.ok) throw new Error(`Local proxy HTTP ${r.status}`);
       const j = await r.json();
       if (j.error) throw new Error(j.error);
+      // Graceful offline: server couldn't reach oref.org.il (e.g. geo-block)
+      if (j.offline) {
+        liveAlarms = [];
+        computeRiskNorm();
+        rebuildHeatmap();
+        showDataState('empty');
+        document.getElementById('ds-empty').textContent = j.msg || 'Live alarm data unavailable — map shows confirmed hit sites only.';
+        document.getElementById('hdr-status').textContent = 'Alarm API offline — confirmed hits shown';
+        return;
+      }
       raw = j;
     } catch (_) {
       // Fall back to public CORS proxies

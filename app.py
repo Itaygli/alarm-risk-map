@@ -235,7 +235,10 @@ def api_alarms():
         r.headers['Content-Type'] = 'application/json; charset=utf-8'
         return r
 
-    return jsonify({'error': 'No alarm data available and no local cache'}), 502
+    # Live API unreachable and no cache — return a soft offline signal so the
+    # frontend can degrade gracefully (confirmed hit-sites layer still works).
+    return jsonify({'alarms': [], 'offline': True,
+                    'msg': 'Live alarm API unreachable from server — map shows confirmed hit sites only'}), 200
 
 
 # ── Login page HTML ───────────────────────────────────────────────────────────
