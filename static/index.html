@@ -482,6 +482,71 @@
       border-top: 1px solid var(--border);
     }
 
+    /* ── INSTALL BANNER ── */
+    #install-banner {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 16px;
+      right: 16px;
+      z-index: 1100;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      animation: slideUp .35s ease-out;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+    #install-banner .ib-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    #install-banner .ib-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      background: var(--panel);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    #install-banner .ib-text {
+      flex: 1;
+      font-size: 13px;
+      line-height: 1.4;
+      color: var(--text);
+    }
+    #install-banner .ib-text b { font-weight: 600; }
+    #install-banner .ib-text small { color: var(--muted); font-size: 11px; }
+    #install-banner .ib-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    #install-banner .ib-btn {
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    #install-banner .ib-install {
+      background: var(--blue);
+      color: #fff;
+    }
+    #install-banner .ib-dismiss {
+      background: var(--card);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
     /* ── MAP AREA ── */
     .map-wrap { flex: 1; position: relative; }
     #map { width: 100%; height: 100%; }
@@ -781,6 +846,21 @@
   <div class="go-btns">
     <a class="go-waze" id="mob-go-waze" href="#" target="_blank" rel="noopener">🗺️ Waze</a>
     <a class="go-gmaps" id="mob-go-gmaps" href="#" target="_blank" rel="noopener">📍 Google Maps</a>
+  </div>
+</div>
+
+<!-- Install banner (PWA) -->
+<div id="install-banner">
+  <div class="ib-row">
+    <div class="ib-icon">🚀</div>
+    <div class="ib-text">
+      <b>Add to Home Screen</b><br>
+      <small>Quick access — opens like a native app</small>
+    </div>
+  </div>
+  <div class="ib-actions">
+    <button class="ib-btn ib-install" id="ib-install" onclick="doInstall()">Install</button>
+    <button class="ib-btn ib-dismiss" onclick="dismissInstall()">Not now</button>
   </div>
 </div>
 
@@ -3196,10 +3276,69 @@ function setLoading(on) {
 }
 function setStatus(msg) { document.getElementById('status-text').textContent = msg; }
 
-// ── PWA Service Worker ──
+// ── PWA Service Worker + Install Banner ──
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }
+
+let deferredInstallPrompt = null;
+
+// Android Chrome: capture the native install prompt
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  showInstallBanner();
+});
+
+// iOS Safari: detect and show manual instructions
+function isIosSafari() {
+  const ua = navigator.userAgent;
+  return /iP(hone|ad|od)/.test(ua) && /WebKit/.test(ua) && !/(CriOS|FxiOS|OPiOS)/.test(ua);
+}
+
+// Check if already installed as PWA
+function isStandalone() {
+  return window.matchMedia('(display-mode: standalone)').matches ||
+         navigator.standalone === true;
+}
+
+function showInstallBanner() {
+  if (isStandalone()) return;                    // already installed
+  if (localStorage.getItem('install-dismissed')) return;  // user said "not now"
+  const banner = document.getElementById('install-banner');
+
+  if (isIosSafari()) {
+    // iOS: show manual instructions
+    banner.querySelector('.ib-text').innerHTML =
+      '<b>Add to Home Screen</b><br>' +
+      '<small>Tap <b>Share</b> ⬆️ then <b>"Add to Home Screen"</b></small>';
+    banner.querySelector('.ib-install').style.display = 'none';
+  }
+
+  banner.style.display = 'block';
+}
+
+function doInstall() {
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    deferredInstallPrompt.userChoice.then(choice => {
+      deferredInstallPrompt = null;
+      document.getElementById('install-banner').style.display = 'none';
+    });
+  }
+}
+
+function dismissInstall() {
+  document.getElementById('install-banner').style.display = 'none';
+  localStorage.setItem('install-dismissed', '1');
+}
+
+// Show iOS banner after a short delay (no beforeinstallprompt on iOS)
+setTimeout(() => {
+  if (isIosSafari() && !isStandalone() && !localStorage.getItem('install-dismissed')) {
+    showInstallBanner();
+  }
+}, 3000);
 
 // ── Start ──
 init();
