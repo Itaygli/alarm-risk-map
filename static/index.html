@@ -505,9 +505,9 @@
       left: 16px;
       right: 16px;
       z-index: 950;
-      background: var(--panel);
-      color: var(--muted);
-      border: 1px solid var(--border);
+      background: #f0f2f5;
+      color: #555;
+      border: none;
       border-radius: 28px;
       height: 52px;
       font-size: 16px;
@@ -527,9 +527,11 @@
       flex: 1;
       text-align: left;
       font-weight: 500;
-      color: var(--muted);
+      color: #888;
     }
+    #mob-fab.is-open { background: var(--panel); border: 1px solid var(--border); }
     #mob-fab.is-open .fab-text { color: var(--text); }
+    #mob-fab.is-open .fab-icon { color: var(--text); }
     #mob-fab:active { transform: scale(.98); box-shadow: 0 2px 12px rgba(0,0,0,.4); }
 
     #mob-backdrop {
