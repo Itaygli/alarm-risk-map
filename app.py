@@ -9,6 +9,7 @@ Flask server — Israel Alarm Risk Map
 import os
 import json
 import urllib.request
+import concurrent.futures
 from datetime import date
 from functools import wraps
 
@@ -209,25 +210,32 @@ def api_alarms():
 
     cached = _load_cache()
 
-    for url in candidates:
-        try:
-            req = urllib.request.Request(url, headers=req_headers)
-            with urllib.request.urlopen(req, timeout=15) as resp:
-                raw = resp.read()
-            text = raw.decode('utf-8', errors='replace').strip()
-            if not text or text[0] not in ('[', '{'):
-                continue
-            parsed = json.loads(text)
-            if isinstance(parsed, dict) and 'data' in parsed:
-                parsed = parsed['data']
-            if not isinstance(parsed, list) or not parsed:
-                continue
-            added = _merge(cached, parsed)
-            print(f'[PROXY] {url} -> {len(parsed)} items, +{added} new (cache={len(cached)})')
-            _save_cache(cached)
-            break
-        except Exception as e:
-            print(f'[PROXY] FAIL {url} -> {e}')
+    def _fetch_url(url):
+        req = urllib.request.Request(url, headers=req_headers)
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            raw = resp.read()
+        text = raw.decode('utf-8', errors='replace').strip()
+        if not text or text[0] not in ('[', '{'):
+            raise ValueError('Not JSON')
+        parsed = json.loads(text)
+        if isinstance(parsed, dict) and 'data' in parsed:
+            parsed = parsed['data']
+        if not isinstance(parsed, list) or not parsed:
+            raise ValueError('Empty list')
+        return url, parsed
+
+    # Race all candidates in parallel — respond as soon as any one succeeds
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(candidates)) as ex:
+        futures = {ex.submit(_fetch_url, url): url for url in candidates}
+        for future in concurrent.futures.as_completed(futures, timeout=10):
+            try:
+                url, parsed = future.result()
+                added = _merge(cached, parsed)
+                print(f'[PROXY] {url} -> {len(parsed)} items, +{added} new (cache={len(cached)})')
+                _save_cache(cached)
+                break
+            except Exception as e:
+                print(f'[PROXY] FAIL {futures[future]} -> {e}')
 
     if cached:
         body = json.dumps(cached, ensure_ascii=False)
