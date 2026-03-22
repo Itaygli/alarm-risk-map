@@ -265,7 +265,7 @@ _LOGIN_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Israel Alarm Risk Analyzer — Sign In</title>
+<title>Israel Navigation Risk Analyzer — Sign In</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{
@@ -312,7 +312,7 @@ svg{flex-shrink:0}
 <body>
 <div class="card">
   <div class="shield">🛡️</div>
-  <h1>Israel Alarm Risk Analyzer</h1>
+  <h1>Israel Navigation Risk Analyzer</h1>
   <span class="sub">Route risk mapping based on real-time<br>Pikud HaOref alarm records</span>
   <span class="badge">2026 Live Data</span>
   %%BUTTONS%%
