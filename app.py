@@ -115,8 +115,9 @@ def login_page():
 def login_start(provider):
     if provider not in [p for p, _ in PROVIDERS]:
         return 'OAuth provider not configured', 404
-    # On Render/Railway the app is behind a TLS proxy; force https scheme for redirect_uri
-    scheme = 'https' if (os.environ.get('RENDER') or os.environ.get('RAILWAY_ENVIRONMENT')) else request.scheme
+    # On cloud platforms the app is behind a TLS proxy; force https for redirect_uri
+    is_cloud = os.environ.get('RENDER') or os.environ.get('RAILWAY_ENVIRONMENT') or os.environ.get('VERCEL')
+    scheme = 'https' if is_cloud else request.scheme
     redirect_uri = url_for('login_callback', provider=provider,
                            _external=True, _scheme=scheme)
     client = oauth.create_client(provider)
