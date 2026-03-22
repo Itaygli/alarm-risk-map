@@ -584,6 +584,50 @@
     #mob-fab.is-open .fab-icon { color: var(--text); }
     #mob-fab:active { transform: scale(.98); box-shadow: 0 2px 12px rgba(0,0,0,.4); }
 
+    /* Mobile "Go now" bottom bar (replaces FAB when route is calculated) */
+    #mob-go-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 960;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+      box-shadow: 0 -4px 20px rgba(0,0,0,.4);
+    }
+    #mob-go-bar .go-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--muted);
+      letter-spacing: .5px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+    #mob-go-bar .go-btns {
+      display: flex;
+      gap: 10px;
+    }
+    #mob-go-bar .go-btns a {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 10px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      color: #fff;
+      transition: transform .1s;
+    }
+    #mob-go-bar .go-btns a:active { transform: scale(.96); }
+    #mob-go-bar .go-waze { background: #33ccff; color: #000 !important; }
+    #mob-go-bar .go-gmaps { background: #4285f4; }
+
     #mob-backdrop {
       display: none;
       position: fixed;
@@ -699,7 +743,7 @@
   <div class="header-left">
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
     <div>
-      <h1 data-i18n="title">Navigate Smart. Stay Out of Range.</h1>
+      <h1>Navigate Smart. Stay Out of Range.</h1>
       <span class="sub" data-i18n="subtitle">Route risk based on 2026 Pikud HaOref alarm records</span>
     </div>
     <span class="badge"><span class="live-dot" id="hdr-dot"></span><span data-i18n="liveData">2026 Live Data</span></span>
@@ -714,6 +758,15 @@
 <div id="mob-fab" onclick="openMobileWithFocus()" role="button" aria-label="Search destination">
   <span class="fab-icon">🔍</span>
   <span class="fab-text" data-i18n="whereToFab">Where to?</span>
+</div>
+
+<!-- Mobile: bottom "Go now" bar (shown after route calculation) -->
+<div id="mob-go-bar">
+  <div class="go-title" data-i18n="goNow">Go now</div>
+  <div class="go-btns">
+    <a class="go-waze" id="mob-go-waze" href="#" target="_blank" rel="noopener">🗺️ Waze</a>
+    <a class="go-gmaps" id="mob-go-gmaps" href="#" target="_blank" rel="noopener">📍 Google Maps</a>
+  </div>
 </div>
 
 <!-- MAIN -->
@@ -1816,8 +1869,6 @@ function applyI18n() {
     }
   });
 
-  // Title
-  document.title = t('title');
 }
 
 // ═══════════════════════════════════════════════
@@ -2590,6 +2641,7 @@ function clearInput(type) {
   document.getElementById('nav-btns').style.display = 'none';
   document.getElementById('risk-content').style.display = 'none';
   document.getElementById('btn-calc').style.display = '';
+  hideMobileGoBar();
   refreshStatus();
 }
 
@@ -2886,11 +2938,16 @@ function updateUI(risk, distM, durS) {
   if (latlngOrigin && latlngDest) {
     const oLat = latlngOrigin.lat, oLng = latlngOrigin.lng;
     const dLat = latlngDest.lat,   dLng = latlngDest.lng;
-    document.getElementById('nav-waze').href =
-      `https://waze.com/ul?ll=${dLat},${dLng}&from=ll.${oLat},${oLng}&navigate=yes`;
-    document.getElementById('nav-gmaps').href =
-      `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=driving`;
+    const wazeUrl = `https://waze.com/ul?ll=${dLat},${dLng}&from=ll.${oLat},${oLng}&navigate=yes`;
+    const gmapsUrl = `https://www.google.com/maps/dir/?api=1&origin=${oLat},${oLng}&destination=${dLat},${dLng}&travelmode=driving`;
+    // Desktop nav links
+    document.getElementById('nav-waze').href = wazeUrl;
+    document.getElementById('nav-gmaps').href = gmapsUrl;
     document.getElementById('nav-btns').style.display = 'block';
+    // Mobile bottom "Go now" bar
+    document.getElementById('mob-go-waze').href = wazeUrl;
+    document.getElementById('mob-go-gmaps').href = gmapsUrl;
+    showMobileGoBar();
   }
 }
 
@@ -2914,6 +2971,7 @@ function buildSegments(pts) {
 function doClear() {
   clearInput('origin');
   clearInput('dest');
+  hideMobileGoBar();
   map.setView([31.8, 34.9], 8);
 }
 
@@ -2923,23 +2981,47 @@ function doClear() {
 // ═══════════════════════════════════════════════
 //  MOBILE SIDEBAR DRAWER
 // ═══════════════════════════════════════════════
+let mobileGoBarVisible = false;
+
+function showMobileGoBar() {
+  if (window.innerWidth > 640) return; // desktop — skip
+  document.getElementById('mob-go-bar').style.display = 'block';
+  document.getElementById('mob-fab').style.display = 'none';
+  mobileGoBarVisible = true;
+}
+function hideMobileGoBar() {
+  document.getElementById('mob-go-bar').style.display = 'none';
+  mobileGoBarVisible = false;
+  // Re-show FAB on mobile
+  if (window.innerWidth <= 640) {
+    document.getElementById('mob-fab').style.display = 'flex';
+  }
+}
+
 function openMobileSidebar() {
   document.querySelector('.sidebar').classList.add('mob-open');
   document.getElementById('mob-backdrop').classList.add('mob-open');
-  const fab = document.getElementById('mob-fab');
-  fab.classList.add('is-open');
-  fab.querySelector('.fab-icon').textContent = '✕';
-  fab.querySelector('.fab-text').textContent = 'Close';
-  fab.onclick = closeMobileSidebar;
+  // Hide FAB when panel is open (the go bar stays if route is active)
+  if (!mobileGoBarVisible) {
+    const fab = document.getElementById('mob-fab');
+    fab.style.display = 'none';
+  }
 }
 function closeMobileSidebar() {
   document.querySelector('.sidebar').classList.remove('mob-open');
   document.getElementById('mob-backdrop').classList.remove('mob-open');
-  const fab = document.getElementById('mob-fab');
-  fab.classList.remove('is-open');
-  fab.querySelector('.fab-icon').textContent = '🔍';
-  fab.querySelector('.fab-text').textContent = t('whereToFab');
-  fab.onclick = openMobileWithFocus;
+  // Show the right bottom element based on route state
+  if (mobileGoBarVisible) {
+    document.getElementById('mob-go-bar').style.display = 'block';
+    document.getElementById('mob-fab').style.display = 'none';
+  } else {
+    document.getElementById('mob-fab').style.display = 'flex';
+    const fab = document.getElementById('mob-fab');
+    fab.classList.remove('is-open');
+    fab.querySelector('.fab-icon').textContent = '🔍';
+    fab.querySelector('.fab-text').textContent = t('whereToFab');
+    fab.onclick = openMobileWithFocus;
+  }
 }
 function openMobileWithFocus() {
   openMobileSidebar();
