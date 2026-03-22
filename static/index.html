@@ -715,23 +715,10 @@
       /* Peek state: only show summary + risk circle + timeline */
       .sidebar.mob-peek {
         transform: translateY(calc(100% - 300px));
-        overflow: hidden;   /* no scrolling in peek — tap handle to expand */
+        overflow: hidden;
       }
-      /* Hide everything except route-summary and risk-content in peek */
-      .sidebar.mob-peek #route-inputs,
-      .sidebar.mob-peek .status-bar,
-      .sidebar.mob-peek #nav-btns,
-      .sidebar.mob-peek .stats-grid,
-      .sidebar.mob-peek .alt-banner,
-      .sidebar.mob-peek .sec:nth-child(n+3) { display: none !important; }
-      /* Expand on scroll or drag — transition to full */
-      .sidebar.mob-peek.mob-open { transform: translateY(0); overflow-y: auto; }
-      .sidebar.mob-peek.mob-open #route-inputs,
-      .sidebar.mob-peek.mob-open .status-bar,
-      .sidebar.mob-peek.mob-open #nav-btns,
-      .sidebar.mob-peek.mob-open .stats-grid,
-      .sidebar.mob-peek.mob-open .alt-banner,
-      .sidebar.mob-peek.mob-open .sec:nth-child(n+3) { display: revert !important; }
+      /* JS toggles .peek-hide on elements that should be hidden in peek */
+      .peek-hide { display: none !important; }
 
       /* Show mobile-only elements */
       #mob-fab  { display: flex; }
@@ -3041,7 +3028,7 @@ function doClear() {
   // Close peek/drawer on mobile
   const sidebar = document.querySelector('.sidebar');
   sidebar.classList.remove('mob-peek', 'mob-open');
-  sidebar.removeEventListener('scroll', expandPeekOnScroll);
+  setPeekHide(false);
   map.setView([31.8, 34.9], 8);
 }
 
@@ -3108,52 +3095,53 @@ function hideMobileGoBar() {
   }
 }
 
+// Elements to hide in peek mode (everything except summary + risk circle + timeline)
+const PEEK_HIDE_SELECTORS = [
+  '#route-inputs', '.status-bar', '#nav-btns', '.stats-grid',
+  '.alt-banner', '.disclaimer',
+];
+
+function setPeekHide(hide) {
+  const sidebar = document.querySelector('.sidebar');
+  // Hide/show specific elements inside the first .sec
+  PEEK_HIDE_SELECTORS.forEach(sel => {
+    const el = sidebar.querySelector(sel);
+    if (el) el.classList.toggle('peek-hide', hide);
+  });
+  // Hide all sections except the first (route/risk)
+  sidebar.querySelectorAll('.sec').forEach((sec, i) => {
+    if (i > 0) sec.classList.toggle('peek-hide', hide);
+  });
+}
+
 function openMobilePeek() {
   const sidebar = document.querySelector('.sidebar');
   sidebar.classList.remove('mob-open');
   sidebar.classList.add('mob-peek');
+  setPeekHide(true);
   document.getElementById('mob-backdrop').classList.remove('mob-open');
-  // Hide FAB — the peek drawer and/or go bar take over
   document.getElementById('mob-fab').style.display = 'none';
-
-  // Scroll sidebar to top so summary + risk are visible
   sidebar.scrollTop = 0;
-
-  // Expand to full on scroll within the peek
-  sidebar.addEventListener('scroll', expandPeekOnScroll, { passive: true });
-  // Also expand when user taps the drag handle
-}
-
-function expandPeekOnScroll() {
-  const sidebar = document.querySelector('.sidebar');
-  if (sidebar.scrollTop > 20) {
-    sidebar.classList.add('mob-open');
-    sidebar.classList.remove('mob-peek');
-    document.getElementById('mob-backdrop').classList.add('mob-open');
-    sidebar.removeEventListener('scroll', expandPeekOnScroll);
-  }
 }
 
 function openMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');
   sidebar.classList.remove('mob-peek');
   sidebar.classList.add('mob-open');
+  sidebar.style.overflow = '';
+  setPeekHide(false);
   document.getElementById('mob-backdrop').classList.add('mob-open');
   document.getElementById('mob-fab').style.display = 'none';
-  sidebar.removeEventListener('scroll', expandPeekOnScroll);
 }
 function closeMobileSidebar() {
   const sidebar = document.querySelector('.sidebar');
   sidebar.classList.remove('mob-open');
   sidebar.classList.remove('mob-peek');
-  sidebar.removeEventListener('scroll', expandPeekOnScroll);
+  setPeekHide(false);
   document.getElementById('mob-backdrop').classList.remove('mob-open');
   // Show the right bottom element based on route state
-  if (mobileGoBarVisible) {
-    document.getElementById('mob-go-bar').style.display = 'block';
-    document.getElementById('mob-fab').style.display = 'none';
-  } else if (mobileRouteReady) {
-    // Route calculated but static nav visible — show peek again
+  if (mobileRouteReady) {
+    // Route active — return to peek
     openMobilePeek();
   } else {
     document.getElementById('mob-fab').style.display = 'flex';
