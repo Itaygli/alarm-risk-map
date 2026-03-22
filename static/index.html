@@ -712,14 +712,26 @@
       }
       .sidebar.mob-open { transform: translateY(0); }
 
-      /* Peek state: drawer shows only top portion (summary + risk + timeline) */
+      /* Peek state: only show summary + risk circle + timeline */
       .sidebar.mob-peek {
-        transform: translateY(calc(100% - 280px));
-        overflow-y: auto;
+        transform: translateY(calc(100% - 300px));
+        overflow: hidden;   /* no scrolling in peek — tap handle to expand */
       }
-      .sidebar.mob-peek .status-bar { display: none; }
+      /* Hide everything except route-summary and risk-content in peek */
+      .sidebar.mob-peek #route-inputs,
+      .sidebar.mob-peek .status-bar,
+      .sidebar.mob-peek #nav-btns,
+      .sidebar.mob-peek .stats-grid,
+      .sidebar.mob-peek .alt-banner,
+      .sidebar.mob-peek .sec:nth-child(n+3) { display: none !important; }
       /* Expand on scroll or drag — transition to full */
-      .sidebar.mob-peek.mob-open { transform: translateY(0); }
+      .sidebar.mob-peek.mob-open { transform: translateY(0); overflow-y: auto; }
+      .sidebar.mob-peek.mob-open #route-inputs,
+      .sidebar.mob-peek.mob-open .status-bar,
+      .sidebar.mob-peek.mob-open #nav-btns,
+      .sidebar.mob-peek.mob-open .stats-grid,
+      .sidebar.mob-peek.mob-open .alt-banner,
+      .sidebar.mob-peek.mob-open .sec:nth-child(n+3) { display: revert !important; }
 
       /* Show mobile-only elements */
       #mob-fab  { display: flex; }
