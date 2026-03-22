@@ -712,11 +712,12 @@
       }
       .sidebar.mob-open { transform: translateY(0); }
 
-      /* Peek state: drawer shows only top ~260px (summary + risk + timeline) */
+      /* Peek state: drawer shows only top portion (summary + risk + timeline) */
       .sidebar.mob-peek {
-        transform: translateY(calc(100% - 260px));
+        transform: translateY(calc(100% - 280px));
         overflow-y: auto;
       }
+      .sidebar.mob-peek .status-bar { display: none; }
       /* Expand on scroll or drag — transition to full */
       .sidebar.mob-peek.mob-open { transform: translateY(0); }
 
@@ -848,25 +849,12 @@
       <button class="btn btn-primary" id="btn-calc" onclick="doCalculate()" data-i18n="navigate">Navigate</button>
       </div><!-- /route-inputs -->
 
-      <!-- Navigation buttons (shown after route calculation) -->
-      <div id="nav-btns" style="display:none;margin-top:6px">
-        <div class="sec-title" style="margin-bottom:6px" data-i18n="goNow">Go now</div>
-        <div class="nav-btns show">
-          <a class="nav-link nav-waze" id="nav-waze" href="#" target="_blank" rel="noopener">
-            🗺️ Waze
-          </a>
-          <a class="nav-link nav-gmaps" id="nav-gmaps" href="#" target="_blank" rel="noopener">
-            📍 Google Maps
-          </a>
-        </div>
-      </div>
-
       <div class="status-bar">
         <div class="live-dot" id="status-dot"></div>
         <span id="status-text" data-i18n="readyBoth">Ready — enter origin and destination</span>
       </div>
 
-      <!-- Risk assessment (inline — appears after route is calculated) -->
+      <!-- Risk assessment (inline — appears after route is calculated, placed high for peek visibility) -->
       <div id="risk-content" style="display:none;margin-top:12px;border-top:1px solid var(--border);padding-top:12px">
         <div class="risk-circle-wrap">
           <div class="risk-circle" id="risk-circle">
@@ -909,6 +897,19 @@
           <div class="alt-banner-title" id="alt-banner-title" data-i18n="saferAvail">🛡️ Safer route available</div>
           <div class="alt-banner-body" id="alt-body"></div>
           <button class="alt-btn" id="alt-btn" onclick="switchToAltRoute()" data-i18n="switchSafer">Switch to safer route</button>
+        </div>
+      </div>
+
+      <!-- Navigation buttons (shown after route calculation) -->
+      <div id="nav-btns" style="display:none;margin-top:6px">
+        <div class="sec-title" style="margin-bottom:6px" data-i18n="goNow">Go now</div>
+        <div class="nav-btns show">
+          <a class="nav-link nav-waze" id="nav-waze" href="#" target="_blank" rel="noopener">
+            🗺️ Waze
+          </a>
+          <a class="nav-link nav-gmaps" id="nav-gmaps" href="#" target="_blank" rel="noopener">
+            📍 Google Maps
+          </a>
         </div>
       </div>
     </div>
