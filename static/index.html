@@ -712,6 +712,14 @@
       }
       .sidebar.mob-open { transform: translateY(0); }
 
+      /* Peek state: drawer shows only top ~260px (summary + risk + timeline) */
+      .sidebar.mob-peek {
+        transform: translateY(calc(100% - 260px));
+        overflow-y: auto;
+      }
+      /* Expand on scroll or drag — transition to full */
+      .sidebar.mob-peek.mob-open { transform: translateY(0); }
+
       /* Show mobile-only elements */
       #mob-fab  { display: flex; }
       .mob-handle { display: flex; }
@@ -782,7 +790,7 @@
   <!-- SIDEBAR -->
   <div class="sidebar">
     <!-- Mobile drag handle (tap to close) -->
-    <div class="mob-handle" onclick="closeMobileSidebar()">
+    <div class="mob-handle" onclick="handleMobHandleTap()">
       <div class="mob-handle-bar"></div>
     </div>
 
@@ -2823,7 +2831,7 @@ async function doCalculate() {
     setStatus('Analysis complete ✓');
     document.getElementById('btn-calc').style.display = 'none';
     collapseRouteInputs();
-    if (window.innerWidth <= 640) openMobileSidebar();
+    if (window.innerWidth <= 640) openMobilePeek();
   } catch (e) {
     console.error(e);
     setStatus('Error: ' + e.message);
@@ -3017,6 +3025,10 @@ function doClear() {
   clearInput('origin');
   clearInput('dest');
   hideMobileGoBar();
+  // Close peek/drawer on mobile
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.remove('mob-peek', 'mob-open');
+  sidebar.removeEventListener('scroll', expandPeekOnScroll);
   map.setView([31.8, 34.9], 8);
 }
 
@@ -3083,22 +3095,53 @@ function hideMobileGoBar() {
   }
 }
 
-function openMobileSidebar() {
-  document.querySelector('.sidebar').classList.add('mob-open');
-  document.getElementById('mob-backdrop').classList.add('mob-open');
-  // Hide FAB when panel is open (the go bar stays if route is active)
-  if (!mobileGoBarVisible) {
-    const fab = document.getElementById('mob-fab');
-    fab.style.display = 'none';
+function openMobilePeek() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.remove('mob-open');
+  sidebar.classList.add('mob-peek');
+  document.getElementById('mob-backdrop').classList.remove('mob-open');
+  // Hide FAB — the peek drawer and/or go bar take over
+  document.getElementById('mob-fab').style.display = 'none';
+
+  // Scroll sidebar to top so summary + risk are visible
+  sidebar.scrollTop = 0;
+
+  // Expand to full on scroll within the peek
+  sidebar.addEventListener('scroll', expandPeekOnScroll, { passive: true });
+  // Also expand when user taps the drag handle
+}
+
+function expandPeekOnScroll() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar.scrollTop > 20) {
+    sidebar.classList.add('mob-open');
+    sidebar.classList.remove('mob-peek');
+    document.getElementById('mob-backdrop').classList.add('mob-open');
+    sidebar.removeEventListener('scroll', expandPeekOnScroll);
   }
 }
+
+function openMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.remove('mob-peek');
+  sidebar.classList.add('mob-open');
+  document.getElementById('mob-backdrop').classList.add('mob-open');
+  document.getElementById('mob-fab').style.display = 'none';
+  sidebar.removeEventListener('scroll', expandPeekOnScroll);
+}
 function closeMobileSidebar() {
-  document.querySelector('.sidebar').classList.remove('mob-open');
+  const sidebar = document.querySelector('.sidebar');
+  sidebar.classList.remove('mob-open');
+  sidebar.classList.remove('mob-peek');
+  sidebar.removeEventListener('scroll', expandPeekOnScroll);
   document.getElementById('mob-backdrop').classList.remove('mob-open');
   // Show the right bottom element based on route state
   if (mobileGoBarVisible) {
     document.getElementById('mob-go-bar').style.display = 'block';
     document.getElementById('mob-fab').style.display = 'none';
+  } else if (mobileRouteReady) {
+    // Route calculated but static nav visible — show peek again
+    openMobilePeek();
   } else {
     document.getElementById('mob-fab').style.display = 'flex';
     const fab = document.getElementById('mob-fab');
@@ -3116,6 +3159,15 @@ function openMobileWithFocus() {
 function toggleMobileSidebar() {
   document.querySelector('.sidebar').classList.contains('mob-open')
     ? closeMobileSidebar() : openMobileSidebar();
+}
+function handleMobHandleTap() {
+  const sidebar = document.querySelector('.sidebar');
+  if (sidebar.classList.contains('mob-peek') && !sidebar.classList.contains('mob-open')) {
+    // In peek mode — expand to full
+    openMobileSidebar();
+  } else {
+    closeMobileSidebar();
+  }
 }
 
 function toggleLayer(which) {
